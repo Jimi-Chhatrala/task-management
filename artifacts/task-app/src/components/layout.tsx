@@ -1,12 +1,44 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, CheckSquare, PlusCircle, Menu, Settings } from "lucide-react";
-import { ReactNode, useState } from "react";
+import {
+  LayoutDashboard,
+  CheckSquare,
+  PlusCircle,
+  Menu,
+  Settings,
+  Moon,
+  SunMedium,
+  Monitor,
+} from "lucide-react";
+import { ReactNode, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark" | "system">(
+    (localStorage.getItem("theme") as "light" | "dark" | "system" | null) ?? "system",
+  );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const applyTheme = () => {
+      const resolved = theme === "system" ? (media.matches ? "dark" : "light") : theme;
+      root.classList.toggle("dark", resolved === "dark");
+    };
+    applyTheme();
+    localStorage.setItem("theme", theme);
+    if (theme !== "system") return;
+    media.addEventListener("change", applyTheme);
+    return () => media.removeEventListener("change", applyTheme);
+  }, [theme]);
 
   const navItems = [
     { href: "/", label: "Tasks", icon: CheckSquare },
@@ -66,7 +98,31 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <SidebarContent />
             </SheetContent>
           </Sheet>
-          <span className="font-semibold">Task Tracker</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Task Tracker</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <SunMedium className="h-4 w-4 dark:hidden" />
+                  <Moon className="h-4 w-4 hidden dark:block" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTheme("light")}>
+                  <SunMedium className="mr-2 h-4 w-4" />
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                  <Moon className="mr-2 h-4 w-4" />
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>
+                  <Monitor className="mr-2 h-4 w-4" />
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </header>
         <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-8">
           <div className="mx-auto max-w-6xl">{children}</div>
