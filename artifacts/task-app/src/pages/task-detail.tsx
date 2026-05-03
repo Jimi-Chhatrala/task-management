@@ -20,7 +20,7 @@ import {
   getListTasksQueryKey,
   getGetTaskStatsQueryKey
 } from "@workspace/api-client-react";
-import type { TaskStatusConfig } from "@workspace/api-client-react";
+import type { TaskStatusConfig, UpdateTaskBody } from "@workspace/api-client-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,7 +197,7 @@ export default function TaskDetail() {
         production_live_date: nextLiveDate,
         due_date: editDueDate ? editDueDate.toISOString() : null,
         reminder_at: editReminderAt ? editReminderAt.toISOString() : null,
-      }
+      } satisfies UpdateTaskBody
     }, {
       onSuccess: (updatedTask) => {
         setIsEditing(false);

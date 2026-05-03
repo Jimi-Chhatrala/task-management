@@ -7,6 +7,7 @@ import {
   useListStatuses,
   getListTasksQueryKey,
 } from "@workspace/api-client-react";
+import type { Task } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "@/components/priority-badge";

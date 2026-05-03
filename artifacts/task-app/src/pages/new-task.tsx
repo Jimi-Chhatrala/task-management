@@ -13,6 +13,7 @@ import {
   getGetTaskStatsQueryKey,
   CreateTaskBodyPriority,
 } from "@workspace/api-client-react";
+import type { CreateTaskBody } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export default function NewTask() {
         due_date: values.due_date ? values.due_date.toISOString() : null,
         reminder_at: values.reminder_at ? values.reminder_at.toISOString() : null,
         time_input: values.time_input,
-      }
+      } satisfies CreateTaskBody
     }, {
       onSuccess: async (task) => {
         if (pendingAttachments.length > 0) {
