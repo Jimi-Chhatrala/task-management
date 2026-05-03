@@ -40,6 +40,7 @@ const formSchema = z.object({
   task_title: z.string().min(1, "Title is required").max(255),
   task_description: z.string().optional(),
   priority: z.enum(["lowest", "low", "medium", "high", "highest"]),
+  status: z.enum(["todo", "in_progress", "testing", "blocked", "done"]),
   production_live_date: z.date().optional().nullable(),
   time_input: z.string().optional().refine(val => !val || /^(?:\d+[dhm]\s*)+$/.test(val), {
     message: "Invalid format. Use 1d 2h 30m"
@@ -58,6 +59,7 @@ export default function NewTask() {
       task_title: "",
       task_description: "",
       priority: "medium",
+      status: "todo",
       time_input: "",
     },
   });
@@ -139,6 +141,31 @@ export default function NewTask() {
                           <SelectItem value="medium">Medium</SelectItem>
                           <SelectItem value="low">Low</SelectItem>
                           <SelectItem value="lowest">Lowest</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-status">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="todo">Todo</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="testing">Testing</SelectItem>
+                          <SelectItem value="blocked">Blocked</SelectItem>
+                          <SelectItem value="done">Done</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

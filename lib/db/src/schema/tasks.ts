@@ -3,6 +3,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const priorityEnum = pgEnum("priority", ["lowest", "low", "medium", "high", "highest"]);
+export const statusEnum = pgEnum("status", ["todo", "in_progress", "testing", "blocked", "done"]);
 
 export const tasksTable = pgTable("tasks", {
   id: serial("id").primaryKey(),
@@ -10,6 +11,7 @@ export const tasksTable = pgTable("tasks", {
   task_title: text("task_title").notNull(),
   task_description: text("task_description"),
   priority: priorityEnum("priority").notNull().default("medium"),
+  status: statusEnum("status").notNull().default("todo"),
   production_live_date: text("production_live_date"),
   time_spent_minutes: integer("time_spent_minutes").notNull().default(0),
   created_at: timestamp("created_at").notNull().defaultNow(),

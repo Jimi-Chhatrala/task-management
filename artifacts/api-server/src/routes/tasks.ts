@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, tasksTable } from "@workspace/db";
-import { eq, isNull, ilike, or, desc, asc, sql, max } from "drizzle-orm";
+import { eq, isNull, ilike, or, desc, asc, sql, max, inArray } from "drizzle-orm";
 import {
   ListTasksQueryParams,
   CreateTaskBody,
@@ -30,7 +30,7 @@ router.get("/tasks", async (req, res) => {
     return;
   }
 
-  const { search, priority, sortBy, sortOrder } = parsed.data;
+  const { search, priority, status, sortBy, sortOrder } = parsed.data;
 
   let query = db
     .select()
@@ -40,6 +40,10 @@ router.get("/tasks", async (req, res) => {
 
   if (priority) {
     query = query.where(eq(tasksTable.priority, priority));
+  }
+
+  if (status) {
+    query = query.where(eq(tasksTable.status, status));
   }
 
   if (search) {
@@ -60,6 +64,8 @@ router.get("/tasks", async (req, res) => {
         return tasksTable.updated_at;
       case "priority":
         return tasksTable.priority;
+      case "status":
+        return tasksTable.status;
       case "production_live_date":
         return tasksTable.production_live_date;
       case "time_spent_minutes":
@@ -91,10 +97,18 @@ router.get("/tasks/stats", async (req, res) => {
     high: 0,
     highest: 0,
   };
+  const by_status: Record<string, number> = {
+    todo: 0,
+    in_progress: 0,
+    testing: 0,
+    blocked: 0,
+    done: 0,
+  };
   let total_time_minutes = 0;
 
   for (const t of all) {
     by_priority[t.priority] = (by_priority[t.priority] ?? 0) + 1;
+    by_status[t.status] = (by_status[t.status] ?? 0) + 1;
     total_time_minutes += t.time_spent_minutes;
   }
 
@@ -108,6 +122,7 @@ router.get("/tasks/stats", async (req, res) => {
   res.json({
     total: all.length,
     by_priority,
+    by_status,
     total_time_minutes,
     total_time_formatted: formatMinutesToReadable(total_time_minutes),
     recent_tasks: recent_tasks.map(formatTask),

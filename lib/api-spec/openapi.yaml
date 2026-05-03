@@ -49,7 +49,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, priority, production_live_date, time_spent_minutes, task_number]
+            enum: [created_at, updated_at, priority, status, production_live_date, time_spent_minutes, task_number]
           description: Sort field
         - name: sortOrder
           in: query
@@ -303,10 +303,16 @@ components:
         - task_number
         - task_title
         - priority
+        - status
+        - status
         - time_spent_minutes
         - time_spent_formatted
         - created_at
         - updated_at
+
+    TaskStatus:
+      type: string
+      enum: [todo, in_progress, testing, blocked, done]
 
     CreateTaskBody:
       type: object
@@ -319,6 +325,8 @@ components:
         priority:
           type: string
           enum: [lowest, low, medium, high, highest]
+        status:
+          $ref: "#/components/schemas/TaskStatus"
         production_live_date:
           type: string
           nullable: true
@@ -329,6 +337,8 @@ components:
       required:
         - task_title
         - priority
+        - status
+        - status
 
     UpdateTaskBody:
       type: object
@@ -343,6 +353,8 @@ components:
         priority:
           type: string
           enum: [lowest, low, medium, high, highest]
+        status:
+          $ref: "#/components/schemas/TaskStatus"
         production_live_date:
           type: string
           nullable: true

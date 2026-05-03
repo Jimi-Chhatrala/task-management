@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { format } from "date-fns";
-import { Search, ArrowUpDown, ChevronDown, CheckSquare, Plus, Clock } from "lucide-react";
+import { Search, ArrowUpDown, CheckSquare, Plus, Clock } from "lucide-react";
 import {
   useListTasks,
   getListTasksQueryKey,
@@ -32,12 +32,14 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [priority, setPriority] = useState<string>("all");
+  const [status, setStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("updated_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const queryParams = {
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(priority !== "all" ? { priority: priority as any } : {}),
+    ...(status !== "all" ? { status: status as any } : {}),
     sortBy: sortBy as any,
     sortOrder,
   };
@@ -105,6 +107,19 @@ export default function Home() {
             <SelectItem value="lowest">Lowest</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="todo">Todo</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="testing">Testing</SelectItem>
+            <SelectItem value="blocked">Blocked</SelectItem>
+            <SelectItem value="done">Done</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card className="border-border shadow-sm overflow-hidden">
@@ -115,6 +130,7 @@ export default function Home() {
                 <SortableHead field="task_number">ID</SortableHead>
                 <TableHead>Title</TableHead>
                 <SortableHead field="priority">Priority</SortableHead>
+                <SortableHead field="status">Status</SortableHead>
                 <SortableHead field="production_live_date">Live Date</SortableHead>
                 <SortableHead field="time_spent_minutes">Logged</SortableHead>
                 <SortableHead field="updated_at">Updated</SortableHead>
@@ -127,6 +143,7 @@ export default function Home() {
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -157,6 +174,9 @@ export default function Home() {
                     </TableCell>
                     <TableCell>
                       <PriorityBadge priority={task.priority} />
+                    </TableCell>
+                    <TableCell className="capitalize text-sm">
+                      {(task.status ?? "todo").replace("_", " ")}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                       {task.production_live_date
