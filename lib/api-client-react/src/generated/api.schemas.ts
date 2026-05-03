@@ -27,6 +27,12 @@ export interface Task {
   priority: TaskPriority;
   status: string;
   production_live_date?: string | null;
+  /** ISO-8601 datetime string for when the task is due */
+  due_date?: string | null;
+  /** ISO-8601 datetime string for when a reminder should be shown */
+  reminder_at?: string | null;
+  /** True when due_date is in the past and task is not done */
+  is_overdue: boolean;
   time_spent_minutes: number;
   time_spent_formatted: string;
   created_at: string;
@@ -95,6 +101,10 @@ export interface CreateTaskBody {
   priority: CreateTaskBodyPriority;
   status: string;
   production_live_date?: string | null;
+  /** ISO-8601 datetime string for when the task is due */
+  due_date?: string | null;
+  /** ISO-8601 datetime string for when a reminder should be shown */
+  reminder_at?: string | null;
   /** Jira-style time input e.g. '1d 2h 30m' */
   time_input?: string | null;
 }
@@ -117,6 +127,10 @@ export interface UpdateTaskBody {
   priority?: UpdateTaskBodyPriority;
   status?: string;
   production_live_date?: string | null;
+  /** ISO-8601 datetime string for when the task is due */
+  due_date?: string | null;
+  /** ISO-8601 datetime string for when a reminder should be shown */
+  reminder_at?: string | null;
   /** Jira-style time input e.g. '1d 2h 30m'. Replaces current value. */
   time_input?: string | null;
 }
@@ -136,6 +150,7 @@ export interface TaskStats {
   by_status: TaskStatsByStatus;
   total_time_minutes: number;
   total_time_formatted: string;
+  overdue_count: number;
   recent_tasks: Task[];
 }
 
@@ -172,6 +187,10 @@ export type ListTasksParams = {
    */
   status?: string;
   /**
+   * Filter to overdue tasks only
+   */
+  overdue?: ListTasksOverdue;
+  /**
    * Sort field
    */
   sortBy?: ListTasksSortBy;
@@ -192,6 +211,14 @@ export const ListTasksPriority = {
   highest: "highest",
 } as const;
 
+export type ListTasksOverdue =
+  (typeof ListTasksOverdue)[keyof typeof ListTasksOverdue];
+
+export const ListTasksOverdue = {
+  true: "true",
+  false: "false",
+} as const;
+
 export type ListTasksSortBy =
   (typeof ListTasksSortBy)[keyof typeof ListTasksSortBy];
 
@@ -201,6 +228,7 @@ export const ListTasksSortBy = {
   priority: "priority",
   status: "status",
   production_live_date: "production_live_date",
+  due_date: "due_date",
   time_spent_minutes: "time_spent_minutes",
   task_number: "task_number",
 } as const;

@@ -50,6 +50,8 @@ const formSchema = z.object({
   task_description: z.string().optional(),
   priority: z.enum(["lowest", "low", "medium", "high", "highest"]),
   status: z.string().min(1, "Status is required"),
+  due_date: z.date().optional().nullable(),
+  reminder_at: z.date().optional().nullable(),
   production_live_date: z.date().optional().nullable(),
   time_input: z.string().optional().refine(val => !val || /^(?:\d+[dhm]\s*)+$/.test(val), {
     message: "Invalid format. Use 1d 2h 30m"
@@ -91,6 +93,8 @@ export default function NewTask() {
         priority: values.priority as keyof typeof CreateTaskBodyPriority,
         status: values.status,
         production_live_date: values.production_live_date ? values.production_live_date.toISOString() : null,
+        due_date: values.due_date ? values.due_date.toISOString() : null,
+        reminder_at: values.reminder_at ? values.reminder_at.toISOString() : null,
         time_input: values.time_input,
       }
     }, {
@@ -236,28 +240,24 @@ export default function NewTask() {
                   )}
                 />
 
+                {/* Due Date */}
                 <FormField
                   control={form.control}
-                  name="production_live_date"
+                  name="due_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Production Live Date (Optional)</FormLabel>
+                      <FormLabel>Due Date (Optional)</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
-                              variant={"outline"}
+                              variant="outline"
                               className={cn(
                                 "w-full pl-3 text-left font-normal",
                                 !field.value && "text-muted-foreground"
                               )}
-                              data-testid="button-live-date"
                             >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
+                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -267,11 +267,61 @@ export default function NewTask() {
                             mode="single"
                             selected={field.value || undefined}
                             onSelect={field.onChange}
-                            disabled={(date) => date < new Date("1900-01-01")}
                             initialFocus
                           />
+                          {field.value && (
+                            <div className="p-2 border-t">
+                              <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => field.onChange(null)}>
+                                Clear date
+                              </Button>
+                            </div>
+                          )}
                         </PopoverContent>
                       </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Reminder */}
+                <FormField
+                  control={form.control}
+                  name="reminder_at"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Reminder (Optional)</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value || undefined}
+                            onSelect={field.onChange}
+                            initialFocus
+                          />
+                          {field.value && (
+                            <div className="p-2 border-t">
+                              <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => field.onChange(null)}>
+                                Clear reminder
+                              </Button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                      <FormDescription className="text-xs">Shows an in-app alert when this date arrives</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

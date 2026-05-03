@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { format } from "date-fns";
-import { Search, ArrowUpDown, CheckSquare, Plus, Clock } from "lucide-react";
+import { format, isPast, isToday, isTomorrow, differenceInDays } from "date-fns";
+import { Search, ArrowUpDown, CheckSquare, Plus, Clock, AlertCircle } from "lucide-react";
 import {
   useListTasks,
   useListStatuses,
@@ -28,7 +28,42 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useDebounce } from "@/hooks/use-debounce";
+
+function DueDateBadge({ dueDate, isOverdue }: { dueDate: string | null | undefined; isOverdue: boolean }) {
+  if (!dueDate) return <span className="text-muted-foreground">—</span>;
+
+  const date = new Date(dueDate);
+
+  if (isOverdue) {
+    const daysAgo = differenceInDays(new Date(), date);
+    return (
+      <Badge variant="destructive" className="text-xs gap-1 font-medium">
+        <AlertCircle className="h-3 w-3" />
+        {daysAgo === 0 ? "Today" : `${daysAgo}d overdue`}
+      </Badge>
+    );
+  }
+
+  if (isToday(date)) {
+    return <Badge className="text-xs bg-amber-500 hover:bg-amber-500 text-white">Due today</Badge>;
+  }
+  if (isTomorrow(date)) {
+    return <Badge variant="secondary" className="text-xs">Due tomorrow</Badge>;
+  }
+
+  const daysLeft = differenceInDays(date, new Date());
+  if (daysLeft <= 3) {
+    return (
+      <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+        {format(date, "MMM d")}
+      </span>
+    );
+  }
+
+  return <span className="text-sm text-muted-foreground whitespace-nowrap">{format(date, "MMM d, yyyy")}</span>;
+}
 
 export default function Home() {
   const [search, setSearch] = useState("");
@@ -37,6 +72,7 @@ export default function Home() {
   const [status, setStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("updated_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [overdueOnly, setOverdueOnly] = useState(false);
 
   const { data: statuses } = useListStatuses();
 
@@ -44,6 +80,7 @@ export default function Home() {
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(priority !== "all" ? { priority: priority as any } : {}),
     ...(status !== "all" ? { status } : {}),
+    ...(overdueOnly ? { overdue: "true" as const } : {}),
     sortBy: sortBy as any,
     sortOrder,
   };
@@ -51,6 +88,8 @@ export default function Home() {
   const { data: tasks, isLoading } = useListTasks(queryParams, {
     query: { queryKey: getListTasksQueryKey(queryParams) },
   });
+
+  const overdueCount = tasks?.filter((t) => t.is_overdue).length ?? 0;
 
   const toggleSort = (field: string) => {
     if (sortBy === field) {
@@ -87,6 +126,17 @@ export default function Home() {
           </Button>
         </Link>
       </div>
+
+      {/* Overdue banner */}
+      {!isLoading && overdueCount > 0 && !overdueOnly && (
+        <button
+          onClick={() => setOverdueOnly(true)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium hover:bg-destructive/15 transition-colors text-left"
+        >
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {overdueCount} task{overdueCount !== 1 ? "s are" : " is"} overdue — click to filter
+        </button>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 flex-wrap">
         <div className="relative w-full lg:flex-1 lg:max-w-sm">
@@ -127,6 +177,12 @@ export default function Home() {
             ))}
           </SelectContent>
         </Select>
+        {overdueOnly && (
+          <Button variant="outline" size="sm" className="text-destructive border-destructive/30" onClick={() => setOverdueOnly(false)}>
+            <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+            Overdue only ✕
+          </Button>
+        )}
       </div>
 
       <Card className="border-border shadow-sm overflow-hidden">
@@ -138,7 +194,7 @@ export default function Home() {
                 <TableHead>Title</TableHead>
                 <SortableHead field="priority">Priority</SortableHead>
                 <SortableHead field="status">Status</SortableHead>
-                <SortableHead field="production_live_date">Live Date</SortableHead>
+                <SortableHead field="due_date">Due Date</SortableHead>
                 <SortableHead field="time_spent_minutes">Logged</SortableHead>
                 <SortableHead field="updated_at">Updated</SortableHead>
               </TableRow>
@@ -168,15 +224,19 @@ export default function Home() {
                 </TableRow>
               ) : (
                 tasks?.map((task) => (
-                  <TableRow key={task.id} className="group">
+                  <TableRow
+                    key={task.id}
+                    className={`group ${task.is_overdue ? "bg-destructive/5 hover:bg-destructive/10" : ""}`}
+                  >
                     <TableCell className="font-mono text-xs font-medium text-muted-foreground">
                       <Link href={`/tasks/${task.id}`} className="hover:text-primary transition-colors">
                         {task.task_number}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-medium max-w-[200px] truncate">
-                      <Link href={`/tasks/${task.id}`} className="hover:text-primary transition-colors">
-                        {task.task_title}
+                    <TableCell className="font-medium max-w-[200px]">
+                      <Link href={`/tasks/${task.id}`} className="hover:text-primary transition-colors flex items-center gap-2">
+                        <span className="truncate">{task.task_title}</span>
+                        {task.is_overdue && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                       </Link>
                     </TableCell>
                     <TableCell>
@@ -185,10 +245,8 @@ export default function Home() {
                     <TableCell>
                       <StatusBadge status={task.status} statuses={statuses} />
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {task.production_live_date
-                        ? format(new Date(task.production_live_date), "MMM d, yyyy")
-                        : "-"}
+                    <TableCell>
+                      <DueDateBadge dueDate={task.due_date} isOverdue={task.is_overdue} />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-sm font-mono bg-muted/50 px-2 py-0.5 rounded w-max">

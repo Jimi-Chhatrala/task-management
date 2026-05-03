@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, tasksTable } from "@workspace/db";
-import { eq, isNull, ilike, or, desc, asc, max } from "drizzle-orm";
+import { eq, isNull, ilike, or, desc, asc, max, lt, and, isNotNull } from "drizzle-orm";
 import {
   ListTasksQueryParams,
   CreateTaskBody,
@@ -12,9 +12,18 @@ import { parseTimeToMinutes, formatMinutesToReadable } from "../lib/time";
 
 const router = Router();
 
+function isTaskOverdue(task: typeof tasksTable.$inferSelect): boolean {
+  if (!task.due_date) return false;
+  if (task.status === "done") return false;
+  return task.due_date < new Date();
+}
+
 function formatTask(task: typeof tasksTable.$inferSelect) {
   return {
     ...task,
+    due_date: task.due_date?.toISOString() ?? null,
+    reminder_at: task.reminder_at?.toISOString() ?? null,
+    is_overdue: isTaskOverdue(task),
     created_at: task.created_at.toISOString(),
     updated_at: task.updated_at.toISOString(),
     deleted_at: task.deleted_at?.toISOString() ?? null,
@@ -30,7 +39,7 @@ router.get("/tasks", async (req, res) => {
     return;
   }
 
-  const { search, priority, status, sortBy, sortOrder } = parsed.data;
+  const { search, priority, status, sortBy, sortOrder, overdue } = parsed.data as any;
 
   let query = db
     .select()
@@ -56,6 +65,16 @@ router.get("/tasks", async (req, res) => {
     );
   }
 
+  if (overdue === "true") {
+    const now = new Date();
+    query = query.where(
+      and(
+        isNotNull(tasksTable.due_date),
+        lt(tasksTable.due_date, now),
+      )
+    );
+  }
+
   const orderCol = (() => {
     switch (sortBy) {
       case "created_at":
@@ -68,6 +87,8 @@ router.get("/tasks", async (req, res) => {
         return tasksTable.status;
       case "production_live_date":
         return tasksTable.production_live_date;
+      case "due_date":
+        return tasksTable.due_date;
       case "time_spent_minutes":
         return tasksTable.time_spent_minutes;
       case "task_number":
@@ -99,11 +120,13 @@ router.get("/tasks/stats", async (req, res) => {
   };
   const by_status: Record<string, number> = {};
   let total_time_minutes = 0;
+  let overdue_count = 0;
 
   for (const t of all) {
     by_priority[t.priority] = (by_priority[t.priority] ?? 0) + 1;
     by_status[t.status] = (by_status[t.status] ?? 0) + 1;
     total_time_minutes += t.time_spent_minutes;
+    if (isTaskOverdue(t)) overdue_count++;
   }
 
   const recent_tasks = await db
@@ -119,6 +142,7 @@ router.get("/tasks/stats", async (req, res) => {
     by_status,
     total_time_minutes,
     total_time_formatted: formatMinutesToReadable(total_time_minutes),
+    overdue_count,
     recent_tasks: recent_tasks.map(formatTask),
   });
 });
@@ -152,7 +176,7 @@ router.post("/tasks", async (req, res) => {
     return;
   }
 
-  const { time_input, ...rest } = parsed.data;
+  const { time_input, due_date, reminder_at, ...rest } = parsed.data as any;
 
   let time_spent_minutes = 0;
   if (time_input) {
@@ -172,7 +196,13 @@ router.post("/tasks", async (req, res) => {
 
   const [task] = await db
     .insert(tasksTable)
-    .values({ ...rest, task_number, time_spent_minutes })
+    .values({
+      ...rest,
+      task_number,
+      time_spent_minutes,
+      due_date: due_date ? new Date(due_date) : null,
+      reminder_at: reminder_at ? new Date(reminder_at) : null,
+    })
     .returning();
 
   res.status(201).json(formatTask(task));
@@ -202,7 +232,7 @@ router.patch("/tasks/:id", async (req, res) => {
     return;
   }
 
-  const { time_input, status, ...rest } = parsed.data;
+  const { time_input, status, due_date, reminder_at, ...rest } = parsed.data as any;
   const nextStatus = status ?? existing.status;
 
   const updates: Partial<typeof tasksTable.$inferInsert> = {
@@ -214,6 +244,14 @@ router.patch("/tasks/:id", async (req, res) => {
         : null,
     updated_at: new Date(),
   };
+
+  if (due_date !== undefined) {
+    updates.due_date = due_date ? new Date(due_date) : null;
+  }
+
+  if (reminder_at !== undefined) {
+    updates.reminder_at = reminder_at ? new Date(reminder_at) : null;
+  }
 
   if (time_input !== undefined) {
     try {

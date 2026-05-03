@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { format } from "date-fns";
+import { format, isPast, isToday, isTomorrow, differenceInDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Clock, CalendarIcon, Edit2, Check,
-  X, Trash2, AlertTriangle, AlertCircle
+  X, Trash2, AlertTriangle, Bell, BellOff, AlertCircle
 } from "lucide-react";
 
 import {
@@ -29,8 +29,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { TaskAttachments } from "@/components/task-attachments";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -38,6 +38,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -65,6 +72,48 @@ const logTimeSchema = z.object({
   })
 });
 
+function DueDateDisplay({ dueDate, isOverdue }: { dueDate: string | null | undefined; isOverdue: boolean }) {
+  if (!dueDate) return <span className="text-muted-foreground">—</span>;
+  const date = new Date(dueDate);
+
+  if (isOverdue) {
+    const daysAgo = differenceInDays(new Date(), date);
+    return (
+      <Badge variant="destructive" className="text-xs gap-1">
+        <AlertCircle className="h-3 w-3" />
+        {daysAgo === 0 ? "Due today (overdue)" : `${daysAgo}d overdue`}
+      </Badge>
+    );
+  }
+  if (isToday(date)) return <Badge className="text-xs bg-amber-500 hover:bg-amber-500 text-white">Due today</Badge>;
+  if (isTomorrow(date)) return <Badge variant="secondary" className="text-xs">Due tomorrow</Badge>;
+
+  const daysLeft = differenceInDays(date, new Date());
+  if (daysLeft <= 3) {
+    return <span className="text-xs font-medium text-amber-600 dark:text-amber-400">{format(date, "MMM d, yyyy")} ({daysLeft}d left)</span>;
+  }
+  return <span className="font-medium">{format(date, "MMM d, yyyy")}</span>;
+}
+
+function ReminderDisplay({ reminderAt }: { reminderAt: string | null | undefined }) {
+  if (!reminderAt) return <span className="text-muted-foreground">—</span>;
+  const date = new Date(reminderAt);
+  const fired = isPast(date);
+  return (
+    <div className="flex items-center gap-1.5">
+      {fired ? (
+        <Bell className="h-3.5 w-3.5 text-amber-500" />
+      ) : (
+        <Bell className="h-3.5 w-3.5 text-muted-foreground" />
+      )}
+      <span className={cn("font-medium", fired && "text-amber-600 dark:text-amber-400")}>
+        {format(date, "MMM d, yyyy")}
+        {fired && " (fired)"}
+      </span>
+    </div>
+  );
+}
+
 export default function TaskDetail() {
   const params = useParams();
   const id = parseInt(params.id || "0", 10);
@@ -86,6 +135,8 @@ export default function TaskDetail() {
   const [editDesc, setEditDesc] = useState("");
   const [editPriority, setEditPriority] = useState<"lowest" | "low" | "medium" | "high" | "highest">("medium");
   const [editStatus, setEditStatus] = useState<string>("todo");
+  const [editDueDate, setEditDueDate] = useState<Date | null>(null);
+  const [editReminderAt, setEditReminderAt] = useState<Date | null>(null);
   const { data: statuses } = useListStatuses();
 
   const timeForm = useForm<z.infer<typeof logTimeSchema>>({
@@ -129,6 +180,8 @@ export default function TaskDetail() {
     setEditDesc(task.task_description || "");
     setEditPriority(task.priority);
     setEditStatus(task.status);
+    setEditDueDate(task.due_date ? new Date(task.due_date) : null);
+    setEditReminderAt(task.reminder_at ? new Date(task.reminder_at) : null);
     setIsEditing(true);
   };
 
@@ -142,6 +195,8 @@ export default function TaskDetail() {
         priority: editPriority,
         status: editStatus,
         production_live_date: nextLiveDate,
+        due_date: editDueDate ? editDueDate.toISOString() : null,
+        reminder_at: editReminderAt ? editReminderAt.toISOString() : null,
       }
     }, {
       onSuccess: (updatedTask) => {
@@ -184,8 +239,26 @@ export default function TaskDetail() {
 
   const statusOptions = (statuses ?? []) as TaskStatusConfig[];
 
+  const reminderFired = task.reminder_at ? isPast(new Date(task.reminder_at)) : false;
+
   return (
     <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
+      {/* Overdue banner */}
+      {task.is_overdue && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          This task is overdue — it was due {task.due_date ? format(new Date(task.due_date), "MMMM d, yyyy") : "in the past"}.
+        </div>
+      )}
+
+      {/* Reminder fired banner */}
+      {reminderFired && !task.is_overdue && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-sm font-medium">
+          <Bell className="h-4 w-4 shrink-0" />
+          Reminder: {task.reminder_at ? format(new Date(task.reminder_at), "MMMM d, yyyy") : ""} — don't forget this task!
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-4">
           <Link href="/">
@@ -266,6 +339,54 @@ export default function TaskDetail() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Due Date edit */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Due Date</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn("w-full pl-3 text-left font-normal", !editDueDate && "text-muted-foreground")}
+                          >
+                            {editDueDate ? format(editDueDate, "PPP") : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={editDueDate || undefined} onSelect={(d) => setEditDueDate(d ?? null)} initialFocus />
+                          {editDueDate && (
+                            <div className="p-2 border-t">
+                              <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setEditDueDate(null)}>Clear date</Button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Reminder edit */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Reminder</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn("w-full pl-3 text-left font-normal", !editReminderAt && "text-muted-foreground")}
+                          >
+                            {editReminderAt ? format(editReminderAt, "PPP") : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={editReminderAt || undefined} onSelect={(d) => setEditReminderAt(d ?? null)} initialFocus />
+                          {editReminderAt && (
+                            <div className="p-2 border-t">
+                              <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setEditReminderAt(null)}>Clear reminder</Button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button size="sm" onClick={saveEdit} disabled={updateTask.isPending}>
@@ -290,7 +411,42 @@ export default function TaskDetail() {
               )}
             </CardHeader>
           </Card>
+
+          {/* Time logging */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Log Time
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Form {...timeForm}>
+                <form onSubmit={timeForm.handleSubmit(onLogTime)} className="flex gap-3">
+                  <FormField
+                    control={timeForm.control}
+                    name="time_input"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          <Input placeholder="e.g. 1h 30m" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" disabled={logTime.isPending}>
+                    {logTime.isPending ? "Logging..." : "Log"}
+                  </Button>
+                </form>
+              </Form>
+              <p className="text-xs text-muted-foreground mt-2">
+                Total logged: <span className="font-mono font-medium">{task.time_spent_formatted}</span>
+              </p>
+            </CardContent>
+          </Card>
         </div>
+
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -305,8 +461,20 @@ export default function TaskDetail() {
                 <span className="text-muted-foreground">Status</span>
                 <StatusBadge status={task.status} statuses={statusOptions} />
               </div>
+              <div className="flex justify-between items-start py-1 border-b border-border/50 gap-2">
+                <span className="text-muted-foreground shrink-0">Due Date</span>
+                <div className="text-right">
+                  <DueDateDisplay dueDate={task.due_date} isOverdue={task.is_overdue} />
+                </div>
+              </div>
+              <div className="flex justify-between items-start py-1 border-b border-border/50 gap-2">
+                <span className="text-muted-foreground shrink-0">Reminder</span>
+                <div className="text-right">
+                  <ReminderDisplay reminderAt={task.reminder_at} />
+                </div>
+              </div>
               <div className="flex justify-between items-center py-1 border-b border-border/50">
-                <span className="text-muted-foreground">Production Live Date</span>
+                <span className="text-muted-foreground">Live Date</span>
                 <span className="font-medium">
                   {task.production_live_date ? format(new Date(task.production_live_date), "MMM d, yyyy") : "—"}
                 </span>
@@ -314,6 +482,10 @@ export default function TaskDetail() {
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Updated</span>
                 <span>{format(new Date(task.updated_at), "MMM d")}</span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-muted-foreground">Created</span>
+                <span>{format(new Date(task.created_at), "MMM d, yyyy")}</span>
               </div>
             </CardContent>
           </Card>

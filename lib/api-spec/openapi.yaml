@@ -54,11 +54,17 @@ paths:
           schema:
             type: string
           description: Filter by status name
+        - name: overdue
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+          description: Filter to overdue tasks only
         - name: sortBy
           in: query
           schema:
             type: string
-            enum: [created_at, updated_at, priority, status, production_live_date, time_spent_minutes, task_number]
+            enum: [created_at, updated_at, priority, status, production_live_date, due_date, time_spent_minutes, task_number]
           description: Sort field
         - name: sortOrder
           in: query
@@ -485,6 +491,17 @@ components:
         production_live_date:
           type: string
           nullable: true
+        due_date:
+          type: string
+          nullable: true
+          description: ISO-8601 datetime string for when the task is due
+        reminder_at:
+          type: string
+          nullable: true
+          description: ISO-8601 datetime string for when a reminder should be shown
+        is_overdue:
+          type: boolean
+          description: True when due_date is in the past and task is not done
         time_spent_minutes:
           type: integer
         time_spent_formatted:
@@ -499,6 +516,7 @@ components:
         - task_title
         - priority
         - status
+        - is_overdue
         - time_spent_minutes
         - time_spent_formatted
         - created_at
@@ -619,6 +637,14 @@ components:
         production_live_date:
           type: string
           nullable: true
+        due_date:
+          type: string
+          nullable: true
+          description: ISO-8601 datetime string for when the task is due
+        reminder_at:
+          type: string
+          nullable: true
+          description: ISO-8601 datetime string for when a reminder should be shown
         time_input:
           type: string
           description: "Jira-style time input e.g. '1d 2h 30m'"
@@ -646,6 +672,14 @@ components:
         production_live_date:
           type: string
           nullable: true
+        due_date:
+          type: string
+          nullable: true
+          description: ISO-8601 datetime string for when the task is due
+        reminder_at:
+          type: string
+          nullable: true
+          description: ISO-8601 datetime string for when a reminder should be shown
         time_input:
           type: string
           description: "Jira-style time input e.g. '1d 2h 30m'. Replaces current value."
@@ -677,6 +711,8 @@ components:
           type: integer
         total_time_formatted:
           type: string
+        overdue_count:
+          type: integer
         recent_tasks:
           type: array
           items:
@@ -687,6 +723,7 @@ components:
         - by_status
         - total_time_minutes
         - total_time_formatted
+        - overdue_count
         - recent_tasks
 
     MessageResponse:

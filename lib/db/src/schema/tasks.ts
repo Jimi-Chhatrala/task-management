@@ -30,6 +30,8 @@ export const tasksTable = pgTable("tasks", {
   priority: priorityEnum("priority").notNull().default("medium"),
   status: text("status").notNull().default("todo"),
   production_live_date: text("production_live_date"),
+  due_date: timestamp("due_date"),
+  reminder_at: timestamp("reminder_at"),
   time_spent_minutes: integer("time_spent_minutes").notNull().default(0),
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow(),

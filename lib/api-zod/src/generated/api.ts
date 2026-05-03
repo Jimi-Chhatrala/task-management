@@ -27,6 +27,10 @@ export const ListTasksQueryParams = zod.object({
     .optional()
     .describe("Filter by priority"),
   status: zod.coerce.string().optional().describe("Filter by status name"),
+  overdue: zod
+    .enum(["true", "false"])
+    .optional()
+    .describe("Filter to overdue tasks only"),
   sortBy: zod
     .enum([
       "created_at",
@@ -34,6 +38,7 @@ export const ListTasksQueryParams = zod.object({
       "priority",
       "status",
       "production_live_date",
+      "due_date",
       "time_spent_minutes",
       "task_number",
     ])
@@ -50,6 +55,17 @@ export const ListTasksResponseItem = zod.object({
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
   status: zod.string(),
   production_live_date: zod.string().nullish(),
+  due_date: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when the task is due"),
+  reminder_at: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when a reminder should be shown"),
+  is_overdue: zod
+    .boolean()
+    .describe("True when due_date is in the past and task is not done"),
   time_spent_minutes: zod.number(),
   time_spent_formatted: zod.string(),
   created_at: zod.string(),
@@ -66,6 +82,14 @@ export const CreateTaskBody = zod.object({
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
   status: zod.string(),
   production_live_date: zod.string().nullish(),
+  due_date: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when the task is due"),
+  reminder_at: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when a reminder should be shown"),
   time_input: zod
     .string()
     .nullish()
@@ -81,6 +105,7 @@ export const GetTaskStatsResponse = zod.object({
   by_status: zod.record(zod.string(), zod.number()),
   total_time_minutes: zod.number(),
   total_time_formatted: zod.string(),
+  overdue_count: zod.number(),
   recent_tasks: zod.array(
     zod.object({
       id: zod.number(),
@@ -90,6 +115,19 @@ export const GetTaskStatsResponse = zod.object({
       priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
       status: zod.string(),
       production_live_date: zod.string().nullish(),
+      due_date: zod
+        .string()
+        .nullish()
+        .describe("ISO-8601 datetime string for when the task is due"),
+      reminder_at: zod
+        .string()
+        .nullish()
+        .describe(
+          "ISO-8601 datetime string for when a reminder should be shown",
+        ),
+      is_overdue: zod
+        .boolean()
+        .describe("True when due_date is in the past and task is not done"),
       time_spent_minutes: zod.number(),
       time_spent_formatted: zod.string(),
       created_at: zod.string(),
@@ -113,6 +151,17 @@ export const GetTaskResponse = zod.object({
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
   status: zod.string(),
   production_live_date: zod.string().nullish(),
+  due_date: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when the task is due"),
+  reminder_at: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when a reminder should be shown"),
+  is_overdue: zod
+    .boolean()
+    .describe("True when due_date is in the past and task is not done"),
   time_spent_minutes: zod.number(),
   time_spent_formatted: zod.string(),
   created_at: zod.string(),
@@ -133,6 +182,14 @@ export const UpdateTaskBody = zod.object({
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]).optional(),
   status: zod.string().optional(),
   production_live_date: zod.string().nullish(),
+  due_date: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when the task is due"),
+  reminder_at: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when a reminder should be shown"),
   time_input: zod
     .string()
     .nullish()
@@ -149,6 +206,17 @@ export const UpdateTaskResponse = zod.object({
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
   status: zod.string(),
   production_live_date: zod.string().nullish(),
+  due_date: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when the task is due"),
+  reminder_at: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when a reminder should be shown"),
+  is_overdue: zod
+    .boolean()
+    .describe("True when due_date is in the past and task is not done"),
   time_spent_minutes: zod.number(),
   time_spent_formatted: zod.string(),
   created_at: zod.string(),
@@ -189,6 +257,17 @@ export const LogTimeResponse = zod.object({
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
   status: zod.string(),
   production_live_date: zod.string().nullish(),
+  due_date: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when the task is due"),
+  reminder_at: zod
+    .string()
+    .nullish()
+    .describe("ISO-8601 datetime string for when a reminder should be shown"),
+  is_overdue: zod
+    .boolean()
+    .describe("True when due_date is in the past and task is not done"),
   time_spent_minutes: zod.number(),
   time_spent_formatted: zod.string(),
   created_at: zod.string(),
