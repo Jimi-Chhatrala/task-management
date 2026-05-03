@@ -125,6 +125,41 @@ export function RichTextEditor({
           "prose-img:rounded-md prose-img:max-w-full prose-img:my-2",
         ),
       },
+      handlePaste(view, event) {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+
+        const imageItems = Array.from(items).filter((item) =>
+          item.type.startsWith("image/")
+        );
+        if (imageItems.length === 0) return false;
+
+        event.preventDefault();
+
+        imageItems.forEach((item) => {
+          const file = item.getAsFile();
+          if (!file) return;
+
+          setIsUploading(true);
+          uploadImageFile(file)
+            .then((imageUrl) => {
+              const { schema } = view.state;
+              const node = schema.nodes.image.create({ src: imageUrl, alt: file.name });
+              const transaction = view.state.tr.replaceSelectionWith(node);
+              view.dispatch(transaction);
+            })
+            .catch(() => {
+              toast({
+                variant: "destructive",
+                title: "Paste upload failed",
+                description: "Could not upload the pasted image.",
+              });
+            })
+            .finally(() => setIsUploading(false));
+        });
+
+        return true;
+      },
     },
   });
 
