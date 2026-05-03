@@ -202,10 +202,16 @@ router.patch("/tasks/:id", async (req, res) => {
     return;
   }
 
-  const { time_input, ...rest } = parsed.data;
+  const { time_input, status, ...rest } = parsed.data;
+  const nextStatus = status ?? existing.status;
 
   const updates: Partial<typeof tasksTable.$inferInsert> = {
     ...rest,
+    status: nextStatus,
+    production_live_date:
+      nextStatus === "done"
+        ? existing.production_live_date ?? new Date().toISOString().slice(0, 10)
+        : null,
     updated_at: new Date(),
   };
 

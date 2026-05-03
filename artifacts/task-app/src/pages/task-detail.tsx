@@ -5,21 +5,22 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { 
-  ArrowLeft, Clock, CalendarIcon, Edit2, Check, 
+import {
+  ArrowLeft, Clock, CalendarIcon, Edit2, Check,
   X, Trash2, AlertTriangle, AlertCircle
 } from "lucide-react";
 
-import { 
-  useGetTask, 
-  useUpdateTask, 
-  useDeleteTask, 
+import {
+  useGetTask,
+  useUpdateTask,
+  useDeleteTask,
   useLogTime,
   useListStatuses,
   getGetTaskQueryKey,
   getListTasksQueryKey,
   getGetTaskStatsQueryKey
 } from "@workspace/api-client-react";
+import type { TaskStatusConfig } from "@workspace/api-client-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,7 +70,7 @@ export default function TaskDetail() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [isEditing, setIsEditing] = useState(false);
 
   const { data: task, isLoading, error } = useGetTask(id, {
@@ -131,6 +132,7 @@ export default function TaskDetail() {
   };
 
   const saveEdit = () => {
+    const nextLiveDate = editStatus === "done" ? task.production_live_date ?? new Date().toISOString().slice(0, 10) : null;
     updateTask.mutate({
       id,
       data: {
@@ -138,6 +140,7 @@ export default function TaskDetail() {
         task_description: editDesc,
         priority: editPriority,
         status: editStatus,
+        production_live_date: nextLiveDate,
       }
     }, {
       onSuccess: (updatedTask) => {
@@ -177,6 +180,8 @@ export default function TaskDetail() {
       onError: (err: any) => toast({ variant: "destructive", title: "Failed to log time", description: err.error })
     });
   };
+
+  const statusOptions = (statuses ?? []) as TaskStatusConfig[];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -223,150 +228,81 @@ export default function TaskDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
-          <div className="space-y-4">
-            {isEditing ? (
-              <Input 
-                value={editTitle}
-                onChange={e => setEditTitle(e.target.value)}
-                className="text-2xl font-bold h-auto py-2"
-                autoFocus
-              />
-            ) : (
-              <h1 className="text-3xl font-bold tracking-tight">{task.task_title}</h1>
-            )}
-            
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <PriorityBadge priority={task.priority} />
-              <span>Created {format(new Date(task.created_at), "MMM d, yyyy")}</span>
-              {task.production_live_date && (
-                <span className="flex items-center gap-1">
-                  <CalendarIcon className="h-3 w-3" />
-                  Live: {format(new Date(task.production_live_date), "MMM d, yyyy")}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <Separator />
-
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Description</h3>
-            {isEditing ? (
-              <div className="space-y-4">
-                <RichTextEditor
-                  value={editDesc}
-                  onChange={setEditDesc}
-                  placeholder="Add more details about this task..."
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Priority</label>
-                    <Select value={editPriority} onValueChange={(value) => setEditPriority(value as typeof editPriority)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="highest">Highest</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="lowest">Lowest</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Status</label>
-                    <Select value={editStatus} onValueChange={(value) => setEditStatus(value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(statuses ?? []).map((s) => (
-                          <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={saveEdit} disabled={updateTask.isPending}>
-                    <Check className="h-4 w-4 mr-1" /> Save
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
-                    <X className="h-4 w-4 mr-1" /> Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div
-                className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed"
-                dangerouslySetInnerHTML={{
-                  __html: task.task_description || "<p class='text-muted-foreground italic'>No description provided.</p>",
-                }}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <Card className="border-primary/20 shadow-sm bg-primary/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center text-primary">
-                <Clock className="h-4 w-4 mr-2" />
-                Time Tracking
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end justify-between mb-6">
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Logged</div>
-                  <div className="text-2xl font-mono font-bold">{task.time_spent_formatted}</div>
-                </div>
-              </div>
-
-              <Form {...timeForm}>
-                <form onSubmit={timeForm.handleSubmit(onLogTime)} className="space-y-3">
-                  <FormField
-                    control={timeForm.control}
-                    name="time_input"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Add Time</FormLabel>
-                        <div className="flex gap-2">
-                          <FormControl>
-                            <Input placeholder="e.g. 2h 30m" className="bg-background" {...field} />
-                          </FormControl>
-                          <Button type="submit" size="sm" disabled={logTime.isPending}>
-                            Log
-                          </Button>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Details</CardTitle>
+            <CardHeader>
+              {isEditing ? (
+                <div className="space-y-4">
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-2xl font-bold h-14" />
+                  <RichTextEditor value={editDesc} onChange={setEditDesc} placeholder="Describe the task..." />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Priority</label>
+                      <Select value={editPriority} onValueChange={(value) => setEditPriority(value as typeof editPriority)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="highest">Highest</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="lowest">Lowest</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Status</label>
+                      <Select value={editStatus} onValueChange={setEditStatus}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusOptions.map((s) => (
+                            <SelectItem key={s.id} value={s.name}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveEdit} disabled={updateTask.isPending}>
+                      <Check className="h-4 w-4 mr-1" /> Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+                      <X className="h-4 w-4 mr-1" /> Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <CardTitle className="text-2xl">{task.task_title}</CardTitle>
+                    <PriorityBadge priority={task.priority} />
+                    <StatusBadge status={task.status} statuses={statusOptions} />
+                  </div>
+                  {task.task_description && (
+                    <div className="prose prose-sm max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: task.task_description }} />
+                  )}
+                </>
+              )}
             </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="flex justify-between items-center py-1 border-b border-border/50">
-                <span className="text-muted-foreground">ID</span>
-                <span className="font-mono">{task.task_number}</span>
-              </div>
+          </Card>
+        </div>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Priority</span>
                 <span className="capitalize font-medium">{task.priority}</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Status</span>
-                <StatusBadge status={task.status} statuses={statuses} />
+                <StatusBadge status={task.status} statuses={statusOptions} />
               </div>
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Updated</span>
