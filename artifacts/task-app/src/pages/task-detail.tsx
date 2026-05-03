@@ -27,6 +27,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PriorityBadge } from "@/components/priority-badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -73,6 +80,7 @@ export default function TaskDetail() {
 
   const [editTitle, setEditTitle] = useState("");
   const [editDesc, setEditDesc] = useState("");
+  const [editPriority, setEditPriority] = useState<"lowest" | "low" | "medium" | "high" | "highest">("medium");
 
   const timeForm = useForm<z.infer<typeof logTimeSchema>>({
     resolver: zodResolver(logTimeSchema),
@@ -113,6 +121,7 @@ export default function TaskDetail() {
   const startEditing = () => {
     setEditTitle(task.task_title);
     setEditDesc(task.task_description || "");
+    setEditPriority(task.priority);
     setIsEditing(true);
   };
 
@@ -121,7 +130,8 @@ export default function TaskDetail() {
       id,
       data: {
         task_title: editTitle,
-        task_description: editDesc
+        task_description: editDesc,
+        priority: editPriority,
       }
     }, {
       onSuccess: (updatedTask) => {
@@ -244,6 +254,21 @@ export default function TaskDetail() {
                   onChange={setEditDesc}
                   placeholder="Add more details about this task..."
                 />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Priority</label>
+                  <Select value={editPriority} onValueChange={(value) => setEditPriority(value as typeof editPriority)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="highest">Highest</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="lowest">Lowest</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={saveEdit} disabled={updateTask.isPending}>
                     <Check className="h-4 w-4 mr-1" /> Save
