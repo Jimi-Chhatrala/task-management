@@ -8,6 +8,7 @@ import { CalendarIcon, ArrowLeft } from "lucide-react";
 import {
   useCreateTask,
   useListStatuses,
+  useCreateTaskAttachment,
   getListTasksQueryKey,
   getGetTaskStatsQueryKey,
 } from "@workspace/api-client-react";
@@ -59,6 +60,7 @@ export default function NewTask() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createTask = useCreateTask();
+  const createAttachment = useCreateTaskAttachment();
   const { data: statuses } = useListStatuses();
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
@@ -93,16 +95,36 @@ export default function NewTask() {
     }, {
       onSuccess: async (task) => {
         if (pendingAttachments.length > 0) {
-          try {
-            for (const item of pendingAttachments) {
-              const formData = new FormData();
-              formData.append("file", item.file);
-              await fetch(`/api/tasks/${task.id}/attachments`, {
+          let failed = false;
+          for (const item of pendingAttachments) {
+            try {
+              const uploadRes = await fetch("/api/storage/uploads/request-url", {
                 method: "POST",
-                body: formData,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: item.file.name, size: item.file.size, contentType: item.file.type || "application/octet-stream" }),
               });
+              if (!uploadRes.ok) throw new Error("Failed to get upload URL");
+              const { uploadURL, objectPath } = await uploadRes.json() as { uploadURL: string; objectPath: string };
+              const putRes = await fetch(uploadURL, {
+                method: "PUT",
+                body: item.file,
+                headers: { "Content-Type": item.file.type || "application/octet-stream" },
+              });
+              if (!putRes.ok) throw new Error("Upload failed");
+              await createAttachment.mutateAsync({
+                id: task.id,
+                data: {
+                  file_name: item.file.name,
+                  file_size: item.file.size,
+                  content_type: item.file.type || "application/octet-stream",
+                  object_path: objectPath,
+                },
+              });
+            } catch {
+              failed = true;
             }
-          } catch {
+          }
+          if (failed) {
             toast({ variant: "destructive", title: "Task created but attachment upload failed" });
           }
         }
@@ -195,7 +217,7 @@ export default function NewTask() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {statuses?.map((s) => (
+                          {statuses?.map((s: { id: number; name: string; color: string; label: string }) => (
                             <SelectItem key={s.id} value={s.name}>
                               <div className="flex items-center gap-2">
                                 <div
