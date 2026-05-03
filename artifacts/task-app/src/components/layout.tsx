@@ -8,16 +8,11 @@ import {
   Moon,
   SunMedium,
   Monitor,
+  ChevronDown,
 } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -87,42 +82,48 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <SidebarContent />
       </aside>
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 md:hidden shrink-0">
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="mr-2">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0 flex flex-col bg-sidebar text-sidebar-foreground">
-              <SidebarContent />
-            </SheetContent>
-          </Sheet>
+        <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Task Tracker</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <SunMedium className="h-4 w-4 dark:hidden" />
-                  <Moon className="h-4 w-4 hidden dark:block" />
+            <Sheet open={open} onOpenChange={setOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setTheme("light")}>
-                  <SunMedium className="mr-2 h-4 w-4" />
-                  Light
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>
-                  <Moon className="mr-2 h-4 w-4" />
-                  Dark
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("system")}>
-                  <Monitor className="mr-2 h-4 w-4" />
-                  System
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="w-64 p-0 flex flex-col bg-sidebar text-sidebar-foreground"
+              >
+                <SidebarContent />
+              </SheetContent>
+            </Sheet>
+            <span className="font-semibold">Task Tracker</span>
           </div>
+          <Button
+            variant="ghost"
+            className="h-8 px-3 text-xs sm:text-sm"
+            onClick={() =>
+              setTheme(theme === "light" ? "dark" : theme === "dark" ? "system" : "light")
+            }
+          >
+            {theme === "light" ? (
+              <>
+                <SunMedium className="mr-2 h-4 w-4" />
+                Light
+              </>
+            ) : theme === "dark" ? (
+              <>
+                <Moon className="mr-2 h-4 w-4" />
+                Dark
+              </>
+            ) : (
+              <>
+                <Monitor className="mr-2 h-4 w-4" />
+                System
+              </>
+            )}
+            <ChevronDown className="ml-2 h-3.5 w-3.5 opacity-70" />
+          </Button>
         </header>
         <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-8">
           <div className="mx-auto max-w-6xl">{children}</div>
