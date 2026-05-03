@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, CheckSquare, PlusCircle, Menu } from "lucide-react";
+import { LayoutDashboard, CheckSquare, PlusCircle, Menu, Settings } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const navItems = [
     { href: "/", label: "Tasks", icon: CheckSquare },
     { href: "/stats", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   const SidebarContent = () => (

@@ -25,11 +25,40 @@ export interface Task {
   task_title: string;
   task_description?: string | null;
   priority: TaskPriority;
+  status: string;
   production_live_date?: string | null;
   time_spent_minutes: number;
   time_spent_formatted: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface TaskStatusConfig {
+  id: number;
+  name: string;
+  label: string;
+  color: string;
+  position: number;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface CreateStatusBody {
+  /** Unique slug/key for the status (e.g. "in_review") */
+  name: string;
+  /** Human-readable label (e.g. "In Review") */
+  label: string;
+  /** Hex color code (e.g. "#3b82f6") */
+  color?: string;
+  position?: number;
+  is_default?: boolean;
+}
+
+export interface UpdateStatusBody {
+  label?: string;
+  color?: string;
+  position?: number;
+  is_default?: boolean;
 }
 
 export type CreateTaskBodyPriority =
@@ -47,6 +76,7 @@ export interface CreateTaskBody {
   task_title: string;
   task_description?: string | null;
   priority: CreateTaskBodyPriority;
+  status: string;
   production_live_date?: string | null;
   /** Jira-style time input e.g. '1d 2h 30m' */
   time_input?: string | null;
@@ -68,6 +98,7 @@ export interface UpdateTaskBody {
   task_title?: string;
   task_description?: string | null;
   priority?: UpdateTaskBodyPriority;
+  status?: string;
   production_live_date?: string | null;
   /** Jira-style time input e.g. '1d 2h 30m'. Replaces current value. */
   time_input?: string | null;
@@ -80,9 +111,12 @@ export interface LogTimeBody {
 
 export type TaskStatsByPriority = { [key: string]: number };
 
+export type TaskStatsByStatus = { [key: string]: number };
+
 export interface TaskStats {
   total: number;
   by_priority: TaskStatsByPriority;
+  by_status: TaskStatsByStatus;
   total_time_minutes: number;
   total_time_formatted: string;
   recent_tasks: Task[];
@@ -117,6 +151,10 @@ export type ListTasksParams = {
    */
   priority?: ListTasksPriority;
   /**
+   * Filter by status name
+   */
+  status?: string;
+  /**
    * Sort field
    */
   sortBy?: ListTasksSortBy;
@@ -144,6 +182,7 @@ export const ListTasksSortBy = {
   created_at: "created_at",
   updated_at: "updated_at",
   priority: "priority",
+  status: "status",
   production_live_date: "production_live_date",
   time_spent_minutes: "time_spent_minutes",
   task_number: "task_number",

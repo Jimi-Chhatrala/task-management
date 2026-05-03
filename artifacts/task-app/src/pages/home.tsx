@@ -4,11 +4,13 @@ import { format } from "date-fns";
 import { Search, ArrowUpDown, CheckSquare, Plus, Clock } from "lucide-react";
 import {
   useListTasks,
+  useListStatuses,
   getListTasksQueryKey,
 } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "@/components/priority-badge";
+import { StatusBadge } from "@/components/status-badge";
 import {
   Select,
   SelectContent,
@@ -25,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { useDebounce } from "@/hooks/use-debounce";
 
 export default function Home() {
@@ -36,10 +38,12 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<string>("updated_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
+  const { data: statuses } = useListStatuses();
+
   const queryParams = {
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(priority !== "all" ? { priority: priority as any } : {}),
-    ...(status !== "all" ? { status: status as any } : {}),
+    ...(status !== "all" ? { status } : {}),
     sortBy: sortBy as any,
     sortOrder,
   };
@@ -84,7 +88,7 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -113,11 +117,14 @@ export default function Home() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="todo">Todo</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="testing">Testing</SelectItem>
-            <SelectItem value="blocked">Blocked</SelectItem>
-            <SelectItem value="done">Done</SelectItem>
+            {statuses?.map((s) => (
+              <SelectItem key={s.id} value={s.name}>
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                  {s.label}
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -151,7 +158,7 @@ export default function Home() {
                 ))
               ) : tasks?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-48 text-center">
+                  <TableCell colSpan={7} className="h-48 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <CheckSquare className="h-10 w-10 mb-4 opacity-20" />
                       <p className="text-lg font-medium text-foreground">No tasks found</p>
@@ -175,8 +182,8 @@ export default function Home() {
                     <TableCell>
                       <PriorityBadge priority={task.priority} />
                     </TableCell>
-                    <TableCell className="capitalize text-sm">
-                      {(task.status ?? "todo").replace("_", " ")}
+                    <TableCell>
+                      <StatusBadge status={task.status} statuses={statuses} />
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                       {task.production_live_date

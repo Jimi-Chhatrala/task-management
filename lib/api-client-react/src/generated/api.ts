@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  CreateStatusBody,
   CreateTaskBody,
   ErrorResponse,
   HealthStatus,
@@ -25,6 +26,8 @@ import type {
   MessageResponse,
   Task,
   TaskStats,
+  TaskStatusConfig,
+  UpdateStatusBody,
   UpdateTaskBody,
   UploadUrlRequest,
   UploadUrlResponse,
@@ -702,6 +705,338 @@ export const useLogTime = <
   TContext
 > => {
   return useMutation(getLogTimeMutationOptions(options));
+};
+
+/**
+ * @summary List all task statuses
+ */
+export const getListStatusesUrl = () => {
+  return `/api/statuses`;
+};
+
+export const listStatuses = async (
+  options?: RequestInit,
+): Promise<TaskStatusConfig[]> => {
+  return customFetch<TaskStatusConfig[]>(getListStatusesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListStatusesQueryKey = () => {
+  return [`/api/statuses`] as const;
+};
+
+export const getListStatusesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listStatuses>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listStatuses>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListStatusesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listStatuses>>> = ({
+    signal,
+  }) => listStatuses({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listStatuses>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListStatusesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listStatuses>>
+>;
+export type ListStatusesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all task statuses
+ */
+
+export function useListStatuses<
+  TData = Awaited<ReturnType<typeof listStatuses>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listStatuses>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListStatusesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new task status
+ */
+export const getCreateStatusUrl = () => {
+  return `/api/statuses`;
+};
+
+export const createStatus = async (
+  createStatusBody: CreateStatusBody,
+  options?: RequestInit,
+): Promise<TaskStatusConfig> => {
+  return customFetch<TaskStatusConfig>(getCreateStatusUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createStatusBody),
+  });
+};
+
+export const getCreateStatusMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createStatus>>,
+    TError,
+    { data: BodyType<CreateStatusBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createStatus>>,
+  TError,
+  { data: BodyType<CreateStatusBody> },
+  TContext
+> => {
+  const mutationKey = ["createStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createStatus>>,
+    { data: BodyType<CreateStatusBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createStatus(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createStatus>>
+>;
+export type CreateStatusMutationBody = BodyType<CreateStatusBody>;
+export type CreateStatusMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a new task status
+ */
+export const useCreateStatus = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createStatus>>,
+    TError,
+    { data: BodyType<CreateStatusBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createStatus>>,
+  TError,
+  { data: BodyType<CreateStatusBody> },
+  TContext
+> => {
+  return useMutation(getCreateStatusMutationOptions(options));
+};
+
+/**
+ * @summary Update a task status
+ */
+export const getUpdateStatusUrl = (id: number) => {
+  return `/api/statuses/${id}`;
+};
+
+export const updateStatus = async (
+  id: number,
+  updateStatusBody: UpdateStatusBody,
+  options?: RequestInit,
+): Promise<TaskStatusConfig> => {
+  return customFetch<TaskStatusConfig>(getUpdateStatusUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateStatusBody),
+  });
+};
+
+export const getUpdateStatusMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateStatus>>,
+    TError,
+    { id: number; data: BodyType<UpdateStatusBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateStatus>>,
+  TError,
+  { id: number; data: BodyType<UpdateStatusBody> },
+  TContext
+> => {
+  const mutationKey = ["updateStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateStatus>>,
+    { id: number; data: BodyType<UpdateStatusBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateStatus(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateStatus>>
+>;
+export type UpdateStatusMutationBody = BodyType<UpdateStatusBody>;
+export type UpdateStatusMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a task status
+ */
+export const useUpdateStatus = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateStatus>>,
+    TError,
+    { id: number; data: BodyType<UpdateStatusBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateStatus>>,
+  TError,
+  { id: number; data: BodyType<UpdateStatusBody> },
+  TContext
+> => {
+  return useMutation(getUpdateStatusMutationOptions(options));
+};
+
+/**
+ * @summary Delete a task status
+ */
+export const getDeleteStatusUrl = (id: number) => {
+  return `/api/statuses/${id}`;
+};
+
+export const deleteStatus = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteStatusUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteStatusMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteStatus>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteStatus>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteStatus>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteStatus(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteStatus>>
+>;
+
+export type DeleteStatusMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a task status
+ */
+export const useDeleteStatus = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteStatus>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteStatus>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteStatusMutationOptions(options));
 };
 
 /**

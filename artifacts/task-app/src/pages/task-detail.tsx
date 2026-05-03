@@ -15,6 +15,7 @@ import {
   useUpdateTask, 
   useDeleteTask, 
   useLogTime,
+  useListStatuses,
   getGetTaskQueryKey,
   getListTasksQueryKey,
   getGetTaskStatsQueryKey
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PriorityBadge } from "@/components/priority-badge";
+import { StatusBadge } from "@/components/status-badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -81,7 +83,8 @@ export default function TaskDetail() {
   const [editTitle, setEditTitle] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editPriority, setEditPriority] = useState<"lowest" | "low" | "medium" | "high" | "highest">("medium");
-  const [editStatus, setEditStatus] = useState<"todo" | "in_progress" | "testing" | "blocked" | "done">("todo");
+  const [editStatus, setEditStatus] = useState<string>("todo");
+  const { data: statuses } = useListStatuses();
 
   const timeForm = useForm<z.infer<typeof logTimeSchema>>({
     resolver: zodResolver(logTimeSchema),
@@ -275,16 +278,14 @@ export default function TaskDetail() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Status</label>
-                    <Select value={editStatus} onValueChange={(value) => setEditStatus(value as typeof editStatus)}>
+                    <Select value={editStatus} onValueChange={(value) => setEditStatus(value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="todo">Todo</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="testing">Testing</SelectItem>
-                        <SelectItem value="blocked">Blocked</SelectItem>
-                        <SelectItem value="done">Done</SelectItem>
+                        {(statuses ?? []).map((s) => (
+                          <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -365,7 +366,7 @@ export default function TaskDetail() {
               </div>
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Status</span>
-                <span className="capitalize font-medium">{task.status.replace("_", " ")}</span>
+                <StatusBadge status={task.status} statuses={statuses} />
               </div>
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Updated</span>

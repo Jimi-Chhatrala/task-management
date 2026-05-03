@@ -26,11 +26,13 @@ export const ListTasksQueryParams = zod.object({
     .enum(["lowest", "low", "medium", "high", "highest"])
     .optional()
     .describe("Filter by priority"),
+  status: zod.coerce.string().optional().describe("Filter by status name"),
   sortBy: zod
     .enum([
       "created_at",
       "updated_at",
       "priority",
+      "status",
       "production_live_date",
       "time_spent_minutes",
       "task_number",
@@ -46,6 +48,7 @@ export const ListTasksResponseItem = zod.object({
   task_title: zod.string(),
   task_description: zod.string().nullish(),
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
+  status: zod.string(),
   production_live_date: zod.string().nullish(),
   time_spent_minutes: zod.number(),
   time_spent_formatted: zod.string(),
@@ -61,6 +64,7 @@ export const CreateTaskBody = zod.object({
   task_title: zod.string(),
   task_description: zod.string().nullish(),
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
+  status: zod.string(),
   production_live_date: zod.string().nullish(),
   time_input: zod
     .string()
@@ -74,6 +78,7 @@ export const CreateTaskBody = zod.object({
 export const GetTaskStatsResponse = zod.object({
   total: zod.number(),
   by_priority: zod.record(zod.string(), zod.number()),
+  by_status: zod.record(zod.string(), zod.number()),
   total_time_minutes: zod.number(),
   total_time_formatted: zod.string(),
   recent_tasks: zod.array(
@@ -83,6 +88,7 @@ export const GetTaskStatsResponse = zod.object({
       task_title: zod.string(),
       task_description: zod.string().nullish(),
       priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
+      status: zod.string(),
       production_live_date: zod.string().nullish(),
       time_spent_minutes: zod.number(),
       time_spent_formatted: zod.string(),
@@ -105,6 +111,7 @@ export const GetTaskResponse = zod.object({
   task_title: zod.string(),
   task_description: zod.string().nullish(),
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
+  status: zod.string(),
   production_live_date: zod.string().nullish(),
   time_spent_minutes: zod.number(),
   time_spent_formatted: zod.string(),
@@ -124,6 +131,7 @@ export const UpdateTaskBody = zod.object({
   task_title: zod.string().optional(),
   task_description: zod.string().nullish(),
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]).optional(),
+  status: zod.string().optional(),
   production_live_date: zod.string().nullish(),
   time_input: zod
     .string()
@@ -139,6 +147,7 @@ export const UpdateTaskResponse = zod.object({
   task_title: zod.string(),
   task_description: zod.string().nullish(),
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
+  status: zod.string(),
   production_live_date: zod.string().nullish(),
   time_spent_minutes: zod.number(),
   time_spent_formatted: zod.string(),
@@ -178,11 +187,74 @@ export const LogTimeResponse = zod.object({
   task_title: zod.string(),
   task_description: zod.string().nullish(),
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
+  status: zod.string(),
   production_live_date: zod.string().nullish(),
   time_spent_minutes: zod.number(),
   time_spent_formatted: zod.string(),
   created_at: zod.string(),
   updated_at: zod.string(),
+});
+
+/**
+ * @summary List all task statuses
+ */
+export const ListStatusesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  label: zod.string(),
+  color: zod.string(),
+  position: zod.number(),
+  is_default: zod.boolean(),
+  created_at: zod.string(),
+});
+export const ListStatusesResponse = zod.array(ListStatusesResponseItem);
+
+/**
+ * @summary Create a new task status
+ */
+export const CreateStatusBody = zod.object({
+  name: zod
+    .string()
+    .describe('Unique slug\/key for the status (e.g. \"in_review\")'),
+  label: zod.string().describe('Human-readable label (e.g. \"In Review\")'),
+  color: zod.string().optional().describe('Hex color code (e.g. \"#3b82f6\")'),
+  position: zod.number().optional(),
+  is_default: zod.boolean().optional(),
+});
+
+/**
+ * @summary Update a task status
+ */
+export const UpdateStatusParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateStatusBody = zod.object({
+  label: zod.string().optional(),
+  color: zod.string().optional(),
+  position: zod.number().optional(),
+  is_default: zod.boolean().optional(),
+});
+
+export const UpdateStatusResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  label: zod.string(),
+  color: zod.string(),
+  position: zod.number(),
+  is_default: zod.boolean(),
+  created_at: zod.string(),
+});
+
+/**
+ * @summary Delete a task status
+ */
+export const DeleteStatusParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteStatusResponse = zod.object({
+  message: zod.string(),
 });
 
 /**

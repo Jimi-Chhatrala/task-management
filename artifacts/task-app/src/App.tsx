@@ -9,6 +9,7 @@ import Home from "@/pages/home";
 import NewTask from "@/pages/new-task";
 import TaskDetail from "@/pages/task-detail";
 import Stats from "@/pages/stats";
+import Settings from "@/pages/settings";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ function Router() {
         <Route path="/tasks/new" component={NewTask} />
         <Route path="/tasks/:id" component={TaskDetail} />
         <Route path="/stats" component={Stats} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

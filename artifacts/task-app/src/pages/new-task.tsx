@@ -4,7 +4,12 @@ import * as z from "zod";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { CalendarIcon, ArrowLeft } from "lucide-react";
-import { useCreateTask, getListTasksQueryKey, getGetTaskStatsQueryKey } from "@workspace/api-client-react";
+import {
+  useCreateTask,
+  useListStatuses,
+  getListTasksQueryKey,
+  getGetTaskStatsQueryKey,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +45,7 @@ const formSchema = z.object({
   task_title: z.string().min(1, "Title is required").max(255),
   task_description: z.string().optional(),
   priority: z.enum(["lowest", "low", "medium", "high", "highest"]),
-  status: z.enum(["todo", "in_progress", "testing", "blocked", "done"]),
+  status: z.string().min(1, "Status is required"),
   production_live_date: z.date().optional().nullable(),
   time_input: z.string().optional().refine(val => !val || /^(?:\d+[dhm]\s*)+$/.test(val), {
     message: "Invalid format. Use 1d 2h 30m"
@@ -52,6 +57,9 @@ export default function NewTask() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createTask = useCreateTask();
+  const { data: statuses } = useListStatuses();
+
+  const defaultStatus = statuses?.find((s) => s.is_default)?.name ?? statuses?.[0]?.name ?? "todo";
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -59,10 +67,16 @@ export default function NewTask() {
       task_title: "",
       task_description: "",
       priority: "medium",
-      status: "todo",
+      status: defaultStatus,
       time_input: "",
     },
   });
+
+  // Update the status default value once statuses load
+  const currentStatus = form.watch("status");
+  if (statuses && statuses.length > 0 && !currentStatus) {
+    form.setValue("status", defaultStatus);
+  }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     createTask.mutate({
@@ -154,18 +168,24 @@ export default function NewTask() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-status">
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="todo">Todo</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="testing">Testing</SelectItem>
-                          <SelectItem value="blocked">Blocked</SelectItem>
-                          <SelectItem value="done">Done</SelectItem>
+                          {statuses?.map((s) => (
+                            <SelectItem key={s.id} value={s.name}>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-2.5 h-2.5 rounded-full"
+                                  style={{ backgroundColor: s.color }}
+                                />
+                                {s.label}
+                              </div>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -213,6 +233,21 @@ export default function NewTask() {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="time_input"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Initial Time Logged (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. 1h 30m" {...field} />
+                      </FormControl>
+                      <FormDescription>Use Jira-style: 1d 2h 30m (1 day = 8h)</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <FormField
@@ -220,12 +255,12 @@ export default function NewTask() {
                 name="task_description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
                       <RichTextEditor
-                        value={field.value}
+                        value={field.value ?? ""}
                         onChange={field.onChange}
-                        placeholder="Add more details about this task..."
+                        placeholder="Describe the task in detail..."
                       />
                     </FormControl>
                     <FormMessage />
@@ -233,28 +268,13 @@ export default function NewTask() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="time_input"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Initial Time Logged (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. 1d 2h 30m" {...field} data-testid="input-time" />
-                    </FormControl>
-                    <FormDescription>Jira-style format: d = day (8h), h = hour, m = minute</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex justify-end gap-4 pt-4 border-t border-border">
-                <Link href="/">
-                  <Button variant="outline" type="button" data-testid="button-cancel">Cancel</Button>
-                </Link>
-                <Button type="submit" disabled={createTask.isPending} data-testid="button-submit">
+              <div className="flex gap-3">
+                <Button type="submit" disabled={createTask.isPending} className="flex-1">
                   {createTask.isPending ? "Creating..." : "Create Task"}
                 </Button>
+                <Link href="/">
+                  <Button type="button" variant="outline">Cancel</Button>
+                </Link>
               </div>
             </form>
           </Form>

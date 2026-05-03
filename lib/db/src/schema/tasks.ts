@@ -1,9 +1,26 @@
-import { pgTable, serial, text, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const priorityEnum = pgEnum("priority", ["lowest", "low", "medium", "high", "highest"]);
-export const statusEnum = pgEnum("status", ["todo", "in_progress", "testing", "blocked", "done"]);
+
+export const taskStatusesTable = pgTable("task_statuses", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  label: text("label").notNull(),
+  color: text("color").notNull().default("#6b7280"),
+  position: integer("position").notNull().default(0),
+  is_default: boolean("is_default").notNull().default(false),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTaskStatusSchema = createInsertSchema(taskStatusesTable).omit({
+  id: true,
+  created_at: true,
+});
+export const selectTaskStatusSchema = createSelectSchema(taskStatusesTable);
+export type InsertTaskStatus = z.infer<typeof insertTaskStatusSchema>;
+export type TaskStatus = typeof taskStatusesTable.$inferSelect;
 
 export const tasksTable = pgTable("tasks", {
   id: serial("id").primaryKey(),
@@ -11,7 +28,7 @@ export const tasksTable = pgTable("tasks", {
   task_title: text("task_title").notNull(),
   task_description: text("task_description"),
   priority: priorityEnum("priority").notNull().default("medium"),
-  status: statusEnum("status").notNull().default("todo"),
+  status: text("status").notNull().default("todo"),
   production_live_date: text("production_live_date"),
   time_spent_minutes: integer("time_spent_minutes").notNull().default(0),
   created_at: timestamp("created_at").notNull().defaultNow(),

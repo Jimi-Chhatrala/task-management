@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: tasks
     description: Task operations
+  - name: statuses
+    description: Task status management
   - name: Storage
     description: Object storage upload and serving endpoints.
 paths:
@@ -45,6 +47,11 @@ paths:
             type: string
             enum: [lowest, low, medium, high, highest]
           description: Filter by priority
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Filter by status name
         - name: sortBy
           in: query
           schema:
@@ -211,6 +218,104 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /statuses:
+    get:
+      operationId: listStatuses
+      tags: [statuses]
+      summary: List all task statuses
+      responses:
+        "200":
+          description: List of statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskStatusConfig"
+    post:
+      operationId: createStatus
+      tags: [statuses]
+      summary: Create a new task status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStatusBody"
+      responses:
+        "201":
+          description: Created status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStatusConfig"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /statuses/{id}:
+    patch:
+      operationId: updateStatus
+      tags: [statuses]
+      summary: Update a task status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStatusBody"
+      responses:
+        "200":
+          description: Updated status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStatusConfig"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteStatus
+      tags: [statuses]
+      summary: Delete a task status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Cannot delete status in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /storage/uploads/request-url:
     post:
       tags: [Storage]
@@ -287,6 +392,8 @@ components:
         priority:
           type: string
           enum: [lowest, low, medium, high, highest]
+        status:
+          type: string
         production_live_date:
           type: string
           nullable: true
@@ -304,15 +411,68 @@ components:
         - task_title
         - priority
         - status
-        - status
         - time_spent_minutes
         - time_spent_formatted
         - created_at
         - updated_at
 
-    TaskStatus:
-      type: string
-      enum: [todo, in_progress, testing, blocked, done]
+    TaskStatusConfig:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        label:
+          type: string
+        color:
+          type: string
+        position:
+          type: integer
+        is_default:
+          type: boolean
+        created_at:
+          type: string
+      required:
+        - id
+        - name
+        - label
+        - color
+        - position
+        - is_default
+        - created_at
+
+    CreateStatusBody:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Unique slug/key for the status (e.g. "in_review")
+        label:
+          type: string
+          description: Human-readable label (e.g. "In Review")
+        color:
+          type: string
+          description: Hex color code (e.g. "#3b82f6")
+        position:
+          type: integer
+        is_default:
+          type: boolean
+      required:
+        - name
+        - label
+
+    UpdateStatusBody:
+      type: object
+      properties:
+        label:
+          type: string
+        color:
+          type: string
+        position:
+          type: integer
+        is_default:
+          type: boolean
 
     CreateTaskBody:
       type: object
@@ -326,7 +486,7 @@ components:
           type: string
           enum: [lowest, low, medium, high, highest]
         status:
-          $ref: "#/components/schemas/TaskStatus"
+          type: string
         production_live_date:
           type: string
           nullable: true
@@ -337,7 +497,6 @@ components:
       required:
         - task_title
         - priority
-        - status
         - status
 
     UpdateTaskBody:
@@ -354,7 +513,7 @@ components:
           type: string
           enum: [lowest, low, medium, high, highest]
         status:
-          $ref: "#/components/schemas/TaskStatus"
+          type: string
         production_live_date:
           type: string
           nullable: true
@@ -381,6 +540,10 @@ components:
           type: object
           additionalProperties:
             type: integer
+        by_status:
+          type: object
+          additionalProperties:
+            type: integer
         total_time_minutes:
           type: integer
         total_time_formatted:
@@ -392,6 +555,7 @@ components:
       required:
         - total
         - by_priority
+        - by_status
         - total_time_minutes
         - total_time_formatted
         - recent_tasks
