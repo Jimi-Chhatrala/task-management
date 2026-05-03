@@ -22,7 +22,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PriorityBadge } from "@/components/priority-badge";
 import { Separator } from "@/components/ui/separator";
@@ -239,10 +239,10 @@ export default function TaskDetail() {
             <h3 className="text-lg font-semibold mb-4">Description</h3>
             {isEditing ? (
               <div className="space-y-4">
-                <Textarea 
+                <RichTextEditor
                   value={editDesc}
-                  onChange={e => setEditDesc(e.target.value)}
-                  className="min-h-[200px]"
+                  onChange={setEditDesc}
+                  placeholder="Add more details about this task..."
                 />
                 <div className="flex gap-2">
                   <Button size="sm" onClick={saveEdit} disabled={updateTask.isPending}>
@@ -254,9 +254,12 @@ export default function TaskDetail() {
                 </div>
               </div>
             ) : (
-              <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                {task.task_description || <span className="text-muted-foreground italic">No description provided.</span>}
-              </div>
+              <div
+                className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: task.task_description || "<p class='text-muted-foreground italic'>No description provided.</p>",
+                }}
+              />
             )}
           </div>
         </div>

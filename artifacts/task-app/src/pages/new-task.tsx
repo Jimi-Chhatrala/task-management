@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import {
   Select,
   SelectContent,
@@ -195,11 +195,10 @@ export default function NewTask() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea
+                      <RichTextEditor
+                        value={field.value}
+                        onChange={field.onChange}
                         placeholder="Add more details about this task..."
-                        className="min-h-[120px] resize-y"
-                        {...field}
-                        data-testid="input-task-description"
                       />
                     </FormControl>
                     <FormMessage />
