@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "@/components/priority-badge";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "../components/status-badge";
 import {
   Select,
   SelectContent,
@@ -74,32 +74,32 @@ export default function Home() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tasks</h1>
           <p className="text-muted-foreground text-sm">Manage and track your work items.</p>
         </div>
         <Link href="/tasks/new">
-          <Button>
+          <Button className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Create Task
           </Button>
         </Link>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 flex-wrap">
+        <div className="relative w-full lg:flex-1 lg:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search tasks..."
-            className="pl-9"
+            className="pl-9 w-full"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Select value={priority} onValueChange={setPriority}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full lg:w-[180px]">
             <SelectValue placeholder="Filter by priority" />
           </SelectTrigger>
           <SelectContent>
@@ -112,7 +112,7 @@ export default function Home() {
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full lg:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>

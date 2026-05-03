@@ -11,6 +11,7 @@ import {
   useCreateTaskAttachment,
   getListTasksQueryKey,
   getGetTaskStatsQueryKey,
+  CreateTaskBodyPriority,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -87,7 +88,7 @@ export default function NewTask() {
       data: {
         task_title: values.task_title,
         task_description: values.task_description,
-        priority: values.priority,
+        priority: values.priority as keyof typeof CreateTaskBodyPriority,
         status: values.status,
         production_live_date: values.production_live_date ? values.production_live_date.toISOString() : null,
         time_input: values.time_input,
@@ -136,26 +137,26 @@ export default function NewTask() {
         queryClient.invalidateQueries({ queryKey: getGetTaskStatsQueryKey() });
         setLocation(`/tasks/${task.id}`);
       },
-      onError: (error: { error?: string }) => {
+      onError: () => {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.error || "Failed to create task.",
+          description: "Failed to create task.",
         });
       }
     });
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Link href="/">
           <Button variant="outline" size="icon" className="shrink-0">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Create Task</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Create Task</h1>
           <p className="text-muted-foreground text-sm">A task number will be assigned automatically.</p>
         </div>
       </div>
@@ -164,7 +165,7 @@ export default function NewTask() {
         <CardContent className="pt-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <FormField
                   control={form.control}
                   name="task_title"
@@ -315,7 +316,7 @@ export default function NewTask() {
                 <NewTaskAttachments files={pendingAttachments} setFiles={setPendingAttachments} />
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button type="submit" disabled={createTask.isPending} className="flex-1">
                   {createTask.isPending ? "Creating..." : "Create Task"}
                 </Button>

@@ -185,8 +185,8 @@ export default function TaskDetail() {
   const statusOptions = (statuses ?? []) as TaskStatusConfig[];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-4">
           <Link href="/">
             <Button variant="outline" size="icon" className="shrink-0 h-8 w-8">
@@ -197,7 +197,7 @@ export default function TaskDetail() {
             {task.task_number}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {!isEditing && (
             <Button variant="outline" size="sm" onClick={startEditing}>
               <Edit2 className="h-4 w-4 mr-2" />
@@ -229,7 +229,7 @@ export default function TaskDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
@@ -237,7 +237,7 @@ export default function TaskDetail() {
                 <div className="space-y-4">
                   <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-2xl font-bold h-14" />
                   <RichTextEditor value={editDesc} onChange={setEditDesc} placeholder="Describe the task..." />
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Priority</label>
                       <Select value={editPriority} onValueChange={(value) => setEditPriority(value as typeof editPriority)}>
@@ -267,7 +267,7 @@ export default function TaskDetail() {
                       </Select>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button size="sm" onClick={saveEdit} disabled={updateTask.isPending}>
                       <Check className="h-4 w-4 mr-1" /> Save
                     </Button>
@@ -279,7 +279,7 @@ export default function TaskDetail() {
               ) : (
                 <>
                   <div className="flex items-center gap-3 flex-wrap">
-                    <CardTitle className="text-2xl">{task.task_title}</CardTitle>
+                    <CardTitle className="text-2xl sm:text-3xl">{task.task_title}</CardTitle>
                     <PriorityBadge priority={task.priority} />
                     <StatusBadge status={task.status} statuses={statusOptions} />
                   </div>
