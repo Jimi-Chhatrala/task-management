@@ -305,6 +305,12 @@ export default function TaskDetail() {
                 <StatusBadge status={task.status} statuses={statusOptions} />
               </div>
               <div className="flex justify-between items-center py-1 border-b border-border/50">
+                <span className="text-muted-foreground">Production Live Date</span>
+                <span className="font-medium">
+                  {task.production_live_date ? format(new Date(task.production_live_date), "MMM d, yyyy") : "—"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Updated</span>
                 <span>{format(new Date(task.updated_at), "MMM d")}</span>
               </div>
