@@ -14,6 +14,8 @@ tags:
     description: Task operations
   - name: statuses
     description: Task status management
+  - name: attachments
+    description: Task file attachments
   - name: Storage
     description: Object storage upload and serving endpoints.
 paths:
@@ -218,6 +220,92 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /tasks/{id}/attachments:
+    get:
+      operationId: listTaskAttachments
+      tags: [attachments]
+      summary: List attachments for a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskAttachment"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createTaskAttachment
+      tags: [attachments]
+      summary: Register a new attachment for a task after upload
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskAttachmentBody"
+      responses:
+        "201":
+          description: Created attachment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskAttachment"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{id}/attachments/{attachmentId}:
+    delete:
+      operationId: deleteTaskAttachment
+      tags: [attachments]
+      summary: Delete an attachment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /statuses:
     get:
       operationId: listStatuses
@@ -415,6 +503,47 @@ components:
         - time_spent_formatted
         - created_at
         - updated_at
+
+    TaskAttachment:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_id:
+          type: integer
+        file_name:
+          type: string
+        file_size:
+          type: integer
+        content_type:
+          type: string
+        object_path:
+          type: string
+        created_at:
+          type: string
+      required:
+        - id
+        - task_id
+        - file_name
+        - file_size
+        - content_type
+        - object_path
+        - created_at
+
+    CreateTaskAttachmentBody:
+      type: object
+      properties:
+        file_name:
+          type: string
+        file_size:
+          type: integer
+        content_type:
+          type: string
+        object_path:
+          type: string
+      required:
+        - file_name
+        - object_path
 
     TaskStatusConfig:
       type: object

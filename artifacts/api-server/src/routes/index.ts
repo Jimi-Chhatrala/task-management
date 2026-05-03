@@ -3,6 +3,7 @@ import healthRouter from "./health";
 import tasksRouter from "./tasks";
 import storageRouter from "./storage";
 import statusesRouter, { seedDefaultStatuses } from "./statuses";
+import attachmentsRouter from "./attachments";
 
 const router: IRouter = Router();
 
@@ -15,5 +16,6 @@ router.use(healthRouter);
 router.use(tasksRouter);
 router.use(storageRouter);
 router.use(statusesRouter);
+router.use(attachmentsRouter);
 
 export default router;

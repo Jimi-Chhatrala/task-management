@@ -28,6 +28,7 @@ import { RichTextEditor } from "@/components/rich-text-editor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusBadge } from "@/components/status-badge";
+import { TaskAttachments } from "@/components/task-attachments";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -314,6 +315,15 @@ export default function TaskDetail() {
                 <span className="text-muted-foreground">Updated</span>
                 <span>{format(new Date(task.updated_at), "MMM d")}</span>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Attachments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TaskAttachments taskId={task.id} />
             </CardContent>
           </Card>
         </div>

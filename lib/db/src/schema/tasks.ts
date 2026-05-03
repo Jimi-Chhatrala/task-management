@@ -36,6 +36,18 @@ export const tasksTable = pgTable("tasks", {
   deleted_at: timestamp("deleted_at"),
 });
 
+export const taskAttachmentsTable = pgTable("task_attachments", {
+  id: serial("id").primaryKey(),
+  task_id: integer("task_id").notNull(),
+  file_name: text("file_name").notNull(),
+  file_size: integer("file_size").notNull().default(0),
+  content_type: text("content_type").notNull().default("application/octet-stream"),
+  object_path: text("object_path").notNull(),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type TaskAttachment = typeof taskAttachmentsTable.$inferSelect;
+
 export const insertTaskSchema = createInsertSchema(tasksTable).omit({
   id: true,
   created_at: true,

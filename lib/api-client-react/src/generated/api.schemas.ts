@@ -33,6 +33,23 @@ export interface Task {
   updated_at: string;
 }
 
+export interface TaskAttachment {
+  id: number;
+  task_id: number;
+  file_name: string;
+  file_size: number;
+  content_type: string;
+  object_path: string;
+  created_at: string;
+}
+
+export interface CreateTaskAttachmentBody {
+  file_name: string;
+  file_size?: number;
+  content_type?: string;
+  object_path: string;
+}
+
 export interface TaskStatusConfig {
   id: number;
   name: string;

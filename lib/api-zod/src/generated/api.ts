@@ -196,6 +196,52 @@ export const LogTimeResponse = zod.object({
 });
 
 /**
+ * @summary List attachments for a task
+ */
+export const ListTaskAttachmentsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTaskAttachmentsResponseItem = zod.object({
+  id: zod.number(),
+  task_id: zod.number(),
+  file_name: zod.string(),
+  file_size: zod.number(),
+  content_type: zod.string(),
+  object_path: zod.string(),
+  created_at: zod.string(),
+});
+export const ListTaskAttachmentsResponse = zod.array(
+  ListTaskAttachmentsResponseItem,
+);
+
+/**
+ * @summary Register a new attachment for a task after upload
+ */
+export const CreateTaskAttachmentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateTaskAttachmentBody = zod.object({
+  file_name: zod.string(),
+  file_size: zod.number().optional(),
+  content_type: zod.string().optional(),
+  object_path: zod.string(),
+});
+
+/**
+ * @summary Delete an attachment
+ */
+export const DeleteTaskAttachmentParams = zod.object({
+  id: zod.coerce.number(),
+  attachmentId: zod.coerce.number(),
+});
+
+export const DeleteTaskAttachmentResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary List all task statuses
  */
 export const ListStatusesResponseItem = zod.object({
