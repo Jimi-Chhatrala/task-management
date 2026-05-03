@@ -27,6 +27,15 @@ A Jira-style Task Management Web App at `/`.
 - Filter by priority, search by title/number/description, sort by any column
 - Stats dashboard with priority breakdown and recent activity
 - Soft deletes (`deleted_at` column)
+- Rich text editor (TipTap) with full toolbar: headings, bold/italic/underline/strike/code, lists, alignment, horizontal rule, image upload
+- Image upload via Replit Object Storage (presigned PUT URLs, served at `/api/storage/objects/*`)
+
+### Object Storage
+- Bucket: `replit-objstore-fab00690-035a-4aea-94d0-8fcdd56ec381`
+- Server lib: `artifacts/api-server/src/lib/objectStorage.ts` + `objectAcl.ts`
+- Routes: `GET/POST /api/storage/...` via `artifacts/api-server/src/routes/storage.ts`
+- Client lib: `lib/object-storage-web/` (exports `useUpload`, `ObjectUploader`)
+- Upload flow: POST `/api/storage/uploads/request-url` → PUT presigned URL → image served at `/api/storage/objects/<uuid>`
 
 ### Data Model
 - `tasks` table: id, task_number (unique), task_title, task_description, priority (enum), production_live_date, time_spent_minutes, created_at, updated_at, deleted_at

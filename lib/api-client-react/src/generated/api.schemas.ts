@@ -96,6 +96,17 @@ export interface ErrorResponse {
   error: string;
 }
 
+export interface UploadUrlRequest {
+  name: string;
+  size: number;
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+}
+
 export type ListTasksParams = {
   /**
    * Search in title, description, task_number
