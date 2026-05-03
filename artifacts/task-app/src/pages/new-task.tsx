@@ -34,10 +34,9 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 const formSchema = z.object({
-  task_number: z.string().min(1, "Task number is required").max(20),
   task_title: z.string().min(1, "Title is required").max(255),
   task_description: z.string().optional(),
   priority: z.enum(["lowest", "low", "medium", "high", "highest"]),
@@ -56,7 +55,6 @@ export default function NewTask() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      task_number: "",
       task_title: "",
       task_description: "",
       priority: "medium",
@@ -74,7 +72,7 @@ export default function NewTask() {
       onSuccess: (task) => {
         toast({
           title: "Task created",
-          description: `Task ${task.task_number} created successfully.`,
+          description: `${task.task_number} was created successfully.`,
         });
         queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetTaskStatsQueryKey() });
@@ -100,7 +98,7 @@ export default function NewTask() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Create Task</h1>
-          <p className="text-muted-foreground text-sm">Add a new item to your workspace.</p>
+          <p className="text-muted-foreground text-sm">A task number will be assigned automatically.</p>
         </div>
       </div>
 
@@ -111,18 +109,18 @@ export default function NewTask() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
-                  name="task_number"
+                  name="task_title"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Task ID / Number</FormLabel>
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Title</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. PROJ-123" {...field} />
+                        <Input placeholder="What needs to be done?" {...field} data-testid="input-task-title" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="priority"
@@ -131,7 +129,7 @@ export default function NewTask() {
                       <FormLabel>Priority</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger data-testid="select-priority">
                             <SelectValue placeholder="Select priority" />
                           </SelectTrigger>
                         </FormControl>
@@ -147,41 +145,7 @@ export default function NewTask() {
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <FormField
-                control={form.control}
-                name="task_title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="What needs to be done?" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="task_description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Add more details about this task..."
-                        className="min-h-[120px] resize-y"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
                   name="production_live_date"
@@ -197,6 +161,7 @@ export default function NewTask() {
                                 "w-full pl-3 text-left font-normal",
                                 !field.value && "text-muted-foreground"
                               )}
+                              data-testid="button-live-date"
                             >
                               {field.value ? (
                                 format(field.value, "PPP")
@@ -212,9 +177,7 @@ export default function NewTask() {
                             mode="single"
                             selected={field.value || undefined}
                             onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date("1900-01-01")
-                            }
+                            disabled={(date) => date < new Date("1900-01-01")}
                             initialFocus
                           />
                         </PopoverContent>
@@ -223,28 +186,47 @@ export default function NewTask() {
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="time_input"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Initial Time Logged (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. 1d 2h 30m" {...field} />
-                      </FormControl>
-                      <FormDescription>Jira-style format (d, h, m)</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
+
+              <FormField
+                control={form.control}
+                name="task_description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Add more details about this task..."
+                        className="min-h-[120px] resize-y"
+                        {...field}
+                        data-testid="input-task-description"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="time_input"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Initial Time Logged (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 1d 2h 30m" {...field} data-testid="input-time" />
+                    </FormControl>
+                    <FormDescription>Jira-style format: d = day (8h), h = hour, m = minute</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="flex justify-end gap-4 pt-4 border-t border-border">
                 <Link href="/">
-                  <Button variant="outline" type="button">Cancel</Button>
+                  <Button variant="outline" type="button" data-testid="button-cancel">Cancel</Button>
                 </Link>
-                <Button type="submit" disabled={createTask.isPending}>
+                <Button type="submit" disabled={createTask.isPending} data-testid="button-submit">
                   {createTask.isPending ? "Creating..." : "Create Task"}
                 </Button>
               </div>

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, tasksTable } from "@workspace/db";
-import { eq, isNull, ilike, or, desc, asc, sql } from "drizzle-orm";
+import { eq, isNull, ilike, or, desc, asc, sql, max } from "drizzle-orm";
 import {
   ListTasksQueryParams,
   CreateTaskBody,
@@ -155,9 +155,16 @@ router.post("/tasks", async (req, res) => {
     }
   }
 
+  // Auto-generate task number: find the highest existing numeric suffix and increment
+  const [result] = await db
+    .select({ maxId: max(tasksTable.id) })
+    .from(tasksTable);
+  const nextNum = (result?.maxId ?? 0) + 1;
+  const task_number = `TASK-${String(nextNum).padStart(3, "0")}`;
+
   const [task] = await db
     .insert(tasksTable)
-    .values({ ...rest, time_spent_minutes })
+    .values({ ...rest, task_number, time_spent_minutes })
     .returning();
 
   res.status(201).json(formatTask(task));

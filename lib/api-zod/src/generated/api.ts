@@ -58,7 +58,6 @@ export const ListTasksResponse = zod.array(ListTasksResponseItem);
  * @summary Create a new task
  */
 export const CreateTaskBody = zod.object({
-  task_number: zod.string(),
   task_title: zod.string(),
   task_description: zod.string().nullish(),
   priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),

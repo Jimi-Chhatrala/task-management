@@ -258,8 +258,6 @@ components:
     CreateTaskBody:
       type: object
       properties:
-        task_number:
-          type: string
         task_title:
           type: string
         task_description:
@@ -276,7 +274,6 @@ components:
           description: "Jira-style time input e.g. '1d 2h 30m'"
           nullable: true
       required:
-        - task_number
         - task_title
         - priority
 

@@ -44,7 +44,6 @@ export const CreateTaskBodyPriority = {
 } as const;
 
 export interface CreateTaskBody {
-  task_number: string;
   task_title: string;
   task_description?: string | null;
   priority: CreateTaskBodyPriority;
