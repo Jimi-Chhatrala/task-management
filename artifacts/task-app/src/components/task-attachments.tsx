@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Paperclip, Trash2, Download, Upload, Loader2, File, Image, FileText, FileArchive, FileCode } from "lucide-react";
+import { Trash2, Download, Upload, Loader2, File, Image, FileText, FileArchive, FileCode } from "lucide-react";
 import {
   useListTaskAttachments,
   useCreateTaskAttachment,
@@ -130,7 +130,6 @@ export function TaskAttachments({ taskId }: TaskAttachmentsProps) {
         onChange={(e) => handleFiles(e.target.files)}
       />
 
-      {/* Drop zone */}
       <div
         className={cn(
           "border-2 border-dashed rounded-lg px-4 py-5 text-center cursor-pointer transition-colors",
@@ -159,14 +158,13 @@ export function TaskAttachments({ taskId }: TaskAttachmentsProps) {
         )}
       </div>
 
-      {/* Attachment list */}
       {isLoading ? (
         <div className="text-sm text-muted-foreground text-center py-2">Loading attachments...</div>
       ) : attachments.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-1">No attachments yet</p>
       ) : (
         <ul className="space-y-2">
-          {attachments.map((a) => (
+          {attachments.map((a: { id: number; content_type: string; file_name: string; file_size: number; object_path: string }) => (
             <li
               key={a.id}
               className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm group"

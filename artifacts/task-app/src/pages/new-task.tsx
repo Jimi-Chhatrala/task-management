@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -40,6 +41,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { NewTaskAttachments, type PendingAttachment } from "@/components/new-task-attachments";
 
 const formSchema = z.object({
   task_title: z.string().min(1, "Title is required").max(255),
@@ -58,6 +60,7 @@ export default function NewTask() {
   const queryClient = useQueryClient();
   const createTask = useCreateTask();
   const { data: statuses } = useListStatuses();
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
   const defaultStatus = statuses?.find((s) => s.is_default)?.name ?? statuses?.[0]?.name ?? "todo";
 
@@ -72,20 +75,37 @@ export default function NewTask() {
     },
   });
 
-  // Update the status default value once statuses load
   const currentStatus = form.watch("status");
   if (statuses && statuses.length > 0 && !currentStatus) {
     form.setValue("status", defaultStatus);
   }
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     createTask.mutate({
       data: {
-        ...values,
+        task_title: values.task_title,
+        task_description: values.task_description,
+        priority: values.priority,
+        status: values.status,
         production_live_date: values.production_live_date ? values.production_live_date.toISOString() : null,
+        time_input: values.time_input,
       }
     }, {
-      onSuccess: (task) => {
+      onSuccess: async (task) => {
+        if (pendingAttachments.length > 0) {
+          try {
+            for (const item of pendingAttachments) {
+              const formData = new FormData();
+              formData.append("file", item.file);
+              await fetch(`/api/tasks/${task.id}/attachments`, {
+                method: "POST",
+                body: formData,
+              });
+            }
+          } catch {
+            toast({ variant: "destructive", title: "Task created but attachment upload failed" });
+          }
+        }
         toast({
           title: "Task created",
           description: `${task.task_number} was created successfully.`,
@@ -94,7 +114,7 @@ export default function NewTask() {
         queryClient.invalidateQueries({ queryKey: getGetTaskStatsQueryKey() });
         setLocation(`/tasks/${task.id}`);
       },
-      onError: (error: any) => {
+      onError: (error: { error?: string }) => {
         toast({
           variant: "destructive",
           title: "Error",
@@ -267,6 +287,11 @@ export default function NewTask() {
                   </FormItem>
                 )}
               />
+
+              <div>
+                <h3 className="text-sm font-medium mb-3">Attachments (Optional)</h3>
+                <NewTaskAttachments files={pendingAttachments} setFiles={setPendingAttachments} />
+              </div>
 
               <div className="flex gap-3">
                 <Button type="submit" disabled={createTask.isPending} className="flex-1">
