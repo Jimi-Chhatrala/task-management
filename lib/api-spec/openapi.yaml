@@ -16,6 +16,10 @@ tags:
     description: Task status management
   - name: attachments
     description: Task file attachments
+  - name: subtasks
+    description: Task subtasks / checklist items
+  - name: relations
+    description: Related task links
   - name: Storage
     description: Object storage upload and serving endpoints.
 paths:
@@ -226,6 +230,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /tasks/{id}/clone:
+    post:
+      operationId: cloneTask
+      tags: [tasks]
+      summary: Clone a task (creates a new task copying title, description, priority, status)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Cloned task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /tasks/{id}/attachments:
     get:
       operationId: listTaskAttachments
@@ -294,6 +323,218 @@ paths:
           schema:
             type: integer
         - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{id}/subtasks:
+    get:
+      operationId: listSubtasks
+      tags: [subtasks]
+      summary: List subtasks/checklist items for a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of subtasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subtask"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createSubtask
+      tags: [subtasks]
+      summary: Create a subtask/checklist item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubtaskBody"
+      responses:
+        "201":
+          description: Created subtask
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subtask"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{id}/subtasks/{subtaskId}:
+    patch:
+      operationId: updateSubtask
+      tags: [subtasks]
+      summary: Update a subtask (title or completed state)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: subtaskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubtaskBody"
+      responses:
+        "200":
+          description: Updated subtask
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subtask"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteSubtask
+      tags: [subtasks]
+      summary: Delete a subtask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: subtaskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{id}/relations:
+    get:
+      operationId: listTaskRelations
+      tags: [relations]
+      summary: List related tasks for a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of task relations with related task details
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskRelation"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createTaskRelation
+      tags: [relations]
+      summary: Link a related task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRelationBody"
+      responses:
+        "201":
+          description: Created relation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskRelation"
+        "400":
+          description: Invalid input or duplicate relation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{id}/relations/{relationId}:
+    delete:
+      operationId: deleteTaskRelation
+      tags: [relations]
+      summary: Remove a related task link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: relationId
           in: path
           required: true
           schema:
@@ -562,6 +803,83 @@ components:
       required:
         - file_name
         - object_path
+
+    Subtask:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_id:
+          type: integer
+        title:
+          type: string
+        completed:
+          type: boolean
+        position:
+          type: integer
+        created_at:
+          type: string
+        updated_at:
+          type: string
+      required:
+        - id
+        - task_id
+        - title
+        - completed
+        - position
+        - created_at
+        - updated_at
+
+    CreateSubtaskBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+
+    UpdateSubtaskBody:
+      type: object
+      properties:
+        title:
+          type: string
+        completed:
+          type: boolean
+
+    TaskRelation:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_id:
+          type: integer
+        related_task_id:
+          type: integer
+        relation_type:
+          type: string
+          enum: [related, blocks, blocked_by, duplicates]
+        related_task:
+          $ref: "#/components/schemas/Task"
+        created_at:
+          type: string
+      required:
+        - id
+        - task_id
+        - related_task_id
+        - relation_type
+        - related_task
+        - created_at
+
+    CreateTaskRelationBody:
+      type: object
+      properties:
+        related_task_id:
+          type: integer
+        relation_type:
+          type: string
+          enum: [related, blocks, blocked_by, duplicates]
+      required:
+        - related_task_id
 
     TaskStatusConfig:
       type: object

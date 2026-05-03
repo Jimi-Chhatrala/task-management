@@ -4,6 +4,8 @@ import tasksRouter from "./tasks";
 import storageRouter from "./storage";
 import statusesRouter, { seedDefaultStatuses } from "./statuses";
 import attachmentsRouter from "./attachments";
+import subtasksRouter from "./subtasks";
+import relationsRouter from "./relations";
 
 const router: IRouter = Router();
 
@@ -17,5 +19,7 @@ router.use(tasksRouter);
 router.use(storageRouter);
 router.use(statusesRouter);
 router.use(attachmentsRouter);
+router.use("/tasks/:id/subtasks", subtasksRouter);
+router.use("/tasks/:id/relations", relationsRouter);
 
 export default router;

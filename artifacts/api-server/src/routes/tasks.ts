@@ -341,4 +341,43 @@ router.post("/tasks/:id/log-time", async (req, res) => {
   res.json(formatTask(updated));
 });
 
+// POST /api/tasks/:id/clone
+router.post("/tasks/:id/clone", async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid task ID" });
+    return;
+  }
+
+  const [existing] = await db
+    .select()
+    .from(tasksTable)
+    .where(eq(tasksTable.id, id));
+
+  if (!existing || existing.deleted_at) {
+    res.status(404).json({ error: "Task not found" });
+    return;
+  }
+
+  const [result] = await db
+    .select({ maxId: max(tasksTable.id) })
+    .from(tasksTable);
+  const nextNum = (result?.maxId ?? 0) + 1;
+  const task_number = `TASK-${String(nextNum).padStart(3, "0")}`;
+
+  const [cloned] = await db
+    .insert(tasksTable)
+    .values({
+      task_number,
+      task_title: `${existing.task_title} (Copy)`,
+      task_description: existing.task_description,
+      priority: existing.priority,
+      status: existing.status,
+      time_spent_minutes: 0,
+    })
+    .returning();
+
+  res.status(201).json(formatTask(cloned));
+});
+
 export default router;

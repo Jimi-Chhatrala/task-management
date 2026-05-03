@@ -275,6 +275,13 @@ export const LogTimeResponse = zod.object({
 });
 
 /**
+ * @summary Clone a task (creates a new task copying title, description, priority, status)
+ */
+export const CloneTaskParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary List attachments for a task
  */
 export const ListTaskAttachmentsParams = zod.object({
@@ -317,6 +324,138 @@ export const DeleteTaskAttachmentParams = zod.object({
 });
 
 export const DeleteTaskAttachmentResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List subtasks/checklist items for a task
+ */
+export const ListSubtasksParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListSubtasksResponseItem = zod.object({
+  id: zod.number(),
+  task_id: zod.number(),
+  title: zod.string(),
+  completed: zod.boolean(),
+  position: zod.number(),
+  created_at: zod.string(),
+  updated_at: zod.string(),
+});
+export const ListSubtasksResponse = zod.array(ListSubtasksResponseItem);
+
+/**
+ * @summary Create a subtask/checklist item
+ */
+export const CreateSubtaskParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateSubtaskBody = zod.object({
+  title: zod.string(),
+});
+
+/**
+ * @summary Update a subtask (title or completed state)
+ */
+export const UpdateSubtaskParams = zod.object({
+  id: zod.coerce.number(),
+  subtaskId: zod.coerce.number(),
+});
+
+export const UpdateSubtaskBody = zod.object({
+  title: zod.string().optional(),
+  completed: zod.boolean().optional(),
+});
+
+export const UpdateSubtaskResponse = zod.object({
+  id: zod.number(),
+  task_id: zod.number(),
+  title: zod.string(),
+  completed: zod.boolean(),
+  position: zod.number(),
+  created_at: zod.string(),
+  updated_at: zod.string(),
+});
+
+/**
+ * @summary Delete a subtask
+ */
+export const DeleteSubtaskParams = zod.object({
+  id: zod.coerce.number(),
+  subtaskId: zod.coerce.number(),
+});
+
+export const DeleteSubtaskResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List related tasks for a task
+ */
+export const ListTaskRelationsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTaskRelationsResponseItem = zod.object({
+  id: zod.number(),
+  task_id: zod.number(),
+  related_task_id: zod.number(),
+  relation_type: zod.enum(["related", "blocks", "blocked_by", "duplicates"]),
+  related_task: zod.object({
+    id: zod.number(),
+    task_number: zod.string(),
+    task_title: zod.string(),
+    task_description: zod.string().nullish(),
+    priority: zod.enum(["lowest", "low", "medium", "high", "highest"]),
+    status: zod.string(),
+    production_live_date: zod.string().nullish(),
+    due_date: zod
+      .string()
+      .nullish()
+      .describe("ISO-8601 datetime string for when the task is due"),
+    reminder_at: zod
+      .string()
+      .nullish()
+      .describe("ISO-8601 datetime string for when a reminder should be shown"),
+    is_overdue: zod
+      .boolean()
+      .describe("True when due_date is in the past and task is not done"),
+    time_spent_minutes: zod.number(),
+    time_spent_formatted: zod.string(),
+    created_at: zod.string(),
+    updated_at: zod.string(),
+  }),
+  created_at: zod.string(),
+});
+export const ListTaskRelationsResponse = zod.array(
+  ListTaskRelationsResponseItem,
+);
+
+/**
+ * @summary Link a related task
+ */
+export const CreateTaskRelationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateTaskRelationBody = zod.object({
+  related_task_id: zod.number(),
+  relation_type: zod
+    .enum(["related", "blocks", "blocked_by", "duplicates"])
+    .optional(),
+});
+
+/**
+ * @summary Remove a related task link
+ */
+export const DeleteTaskRelationParams = zod.object({
+  id: zod.coerce.number(),
+  relationId: zod.coerce.number(),
+});
+
+export const DeleteTaskRelationResponse = zod.object({
   message: zod.string(),
 });
 

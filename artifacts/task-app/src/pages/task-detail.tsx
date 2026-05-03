@@ -7,7 +7,8 @@ import * as z from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Clock, CalendarIcon, Edit2, Check,
-  X, Trash2, AlertTriangle, Bell, BellOff, AlertCircle
+  X, Trash2, AlertTriangle, Bell, AlertCircle,
+  Copy, Plus, CheckSquare, Square, Link2, Unlink
 } from "lucide-react";
 
 import {
@@ -16,11 +17,26 @@ import {
   useDeleteTask,
   useLogTime,
   useListStatuses,
+  useCloneTask,
+  useListSubtasks,
+  useCreateSubtask,
+  useUpdateSubtask,
+  useDeleteSubtask,
+  useListTaskRelations,
+  useCreateTaskRelation,
+  useDeleteTaskRelation,
+  useListTasks,
   getGetTaskQueryKey,
   getListTasksQueryKey,
-  getGetTaskStatsQueryKey
+  getGetTaskStatsQueryKey,
+  getListSubtasksQueryKey,
+  getListTaskRelationsQueryKey,
 } from "@workspace/api-client-react";
-import type { TaskStatusConfig, UpdateTaskBody } from "@workspace/api-client-react";
+import type {
+  TaskStatusConfig,
+  UpdateTaskBody,
+  TaskRelationRelationType,
+} from "@workspace/api-client-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +78,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 
@@ -101,11 +116,7 @@ function ReminderDisplay({ reminderAt }: { reminderAt: string | null | undefined
   const fired = isPast(date);
   return (
     <div className="flex items-center gap-1.5">
-      {fired ? (
-        <Bell className="h-3.5 w-3.5 text-amber-500" />
-      ) : (
-        <Bell className="h-3.5 w-3.5 text-muted-foreground" />
-      )}
+      <Bell className="h-3.5 w-3.5 text-muted-foreground" />
       <span className={cn("font-medium", fired && "text-amber-600 dark:text-amber-400")}>
         {format(date, "MMM d, yyyy")}
         {fired && " (fired)"}
@@ -114,6 +125,297 @@ function ReminderDisplay({ reminderAt }: { reminderAt: string | null | undefined
   );
 }
 
+// ─── Subtasks Panel ────────────────────────────────────────────────────────────
+function SubtasksPanel({ taskId }: { taskId: number }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [newTitle, setNewTitle] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+
+  const { data: subtasks = [] } = useListSubtasks(taskId, {
+    query: { queryKey: getListSubtasksQueryKey(taskId) }
+  });
+  const createSubtask = useCreateSubtask();
+  const updateSubtask = useUpdateSubtask();
+  const deleteSubtask = useDeleteSubtask();
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: getListSubtasksQueryKey(taskId) });
+
+  const handleAdd = () => {
+    const title = newTitle.trim();
+    if (!title) return;
+    createSubtask.mutate({ id: taskId, data: { title } }, {
+      onSuccess: () => { setNewTitle(""); invalidate(); },
+      onError: () => toast({ variant: "destructive", title: "Failed to add subtask" })
+    });
+  };
+
+  const handleToggle = (subtaskId: number, completed: boolean) => {
+    updateSubtask.mutate({ id: taskId, subtaskId, data: { completed } }, {
+      onSuccess: invalidate,
+      onError: () => toast({ variant: "destructive", title: "Failed to update subtask" })
+    });
+  };
+
+  const handleRename = (subtaskId: number) => {
+    const title = editingTitle.trim();
+    if (!title) return;
+    updateSubtask.mutate({ id: taskId, subtaskId, data: { title } }, {
+      onSuccess: () => { setEditingId(null); invalidate(); },
+      onError: () => toast({ variant: "destructive", title: "Failed to rename subtask" })
+    });
+  };
+
+  const handleDelete = (subtaskId: number) => {
+    deleteSubtask.mutate({ id: taskId, subtaskId }, {
+      onSuccess: invalidate,
+      onError: () => toast({ variant: "destructive", title: "Failed to delete subtask" })
+    });
+  };
+
+  const completed = subtasks.filter((s) => s.completed).length;
+  const total = subtasks.length;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CheckSquare className="h-4 w-4" />
+            Checklist
+          </CardTitle>
+          {total > 0 && (
+            <span className="text-xs text-muted-foreground font-medium">
+              {completed}/{total}
+            </span>
+          )}
+        </div>
+        {total > 0 && (
+          <div className="w-full bg-muted rounded-full h-1.5 mt-2">
+            <div
+              className="bg-primary h-1.5 rounded-full transition-all"
+              style={{ width: `${Math.round((completed / total) * 100)}%` }}
+            />
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-1 pt-0">
+        {subtasks.map((s) => (
+          <div key={s.id} className="flex items-center gap-2 group py-1 rounded hover:bg-muted/50 px-1 -mx-1">
+            <button
+              type="button"
+              onClick={() => handleToggle(s.id, !s.completed)}
+              className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
+            >
+              {s.completed
+                ? <CheckSquare className="h-4 w-4 text-primary" />
+                : <Square className="h-4 w-4" />
+              }
+            </button>
+
+            {editingId === s.id ? (
+              <div className="flex-1 flex gap-1">
+                <Input
+                  value={editingTitle}
+                  onChange={(e) => setEditingTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleRename(s.id); if (e.key === "Escape") setEditingId(null); }}
+                  className="h-6 text-sm py-0"
+                  autoFocus
+                />
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleRename(s.id)}><Check className="h-3 w-3" /></Button>
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
+              </div>
+            ) : (
+              <span
+                className={cn("flex-1 text-sm cursor-pointer", s.completed && "line-through text-muted-foreground")}
+                onDoubleClick={() => { setEditingId(s.id); setEditingTitle(s.title); }}
+              >
+                {s.title}
+              </span>
+            )}
+
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+              onClick={() => handleDelete(s.id)}
+            >
+              <Trash2 className="h-3 w-3 text-destructive" />
+            </Button>
+          </div>
+        ))}
+
+        <div className="flex gap-2 pt-2">
+          <Input
+            placeholder="Add checklist item..."
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+            className="h-8 text-sm"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 px-3 shrink-0"
+            onClick={handleAdd}
+            disabled={!newTitle.trim() || createSubtask.isPending}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Related Tasks Panel ───────────────────────────────────────────────────────
+const RELATION_LABELS: Record<string, string> = {
+  related: "Related to",
+  blocks: "Blocks",
+  blocked_by: "Blocked by",
+  duplicates: "Duplicates",
+};
+
+function RelatedTasksPanel({ taskId }: { taskId: number }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [showAdd, setShowAdd] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<string>("");
+  const [relationType, setRelationType] = useState<string>("related");
+
+  const { data: relations = [] } = useListTaskRelations(taskId, {
+    query: { queryKey: getListTaskRelationsQueryKey(taskId) }
+  });
+  const { data: allTasks = [] } = useListTasks({}, {
+    query: { queryKey: getListTasksQueryKey() }
+  });
+  const createRelation = useCreateTaskRelation();
+  const deleteRelation = useDeleteTaskRelation();
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: getListTaskRelationsQueryKey(taskId) });
+
+  const relatedIds = new Set(relations.map((r) => r.related_task_id));
+  const linkableTasks = allTasks.filter((t) => t.id !== taskId && !relatedIds.has(t.id));
+
+  const handleAdd = () => {
+    if (!selectedTask) return;
+    createRelation.mutate({
+      id: taskId,
+      data: {
+        related_task_id: Number(selectedTask),
+        relation_type: relationType as TaskRelationRelationType
+      }
+    }, {
+      onSuccess: () => {
+        setShowAdd(false);
+        setSelectedTask("");
+        setRelationType("related");
+        invalidate();
+      },
+      onError: () => toast({ variant: "destructive", title: "Failed to add relation" })
+    });
+  };
+
+  const handleRemove = (relationId: number) => {
+    deleteRelation.mutate({ id: taskId, relationId }, {
+      onSuccess: invalidate,
+      onError: () => toast({ variant: "destructive", title: "Failed to remove relation" })
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            Related Tasks
+          </CardTitle>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={() => setShowAdd((v) => !v)}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Link
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2 pt-0">
+        {showAdd && (
+          <div className="space-y-2 p-3 rounded-lg border bg-muted/30 mb-3">
+            <Select value={relationType} onValueChange={setRelationType}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="related">Related to</SelectItem>
+                <SelectItem value="blocks">Blocks</SelectItem>
+                <SelectItem value="blocked_by">Blocked by</SelectItem>
+                <SelectItem value="duplicates">Duplicates</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={selectedTask} onValueChange={setSelectedTask}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select a task..." />
+              </SelectTrigger>
+              <SelectContent>
+                {linkableTasks.map((t) => (
+                  <SelectItem key={t.id} value={String(t.id)}>
+                    <span className="font-mono text-xs text-muted-foreground mr-1">{t.task_number}</span>
+                    {t.task_title}
+                  </SelectItem>
+                ))}
+                {linkableTasks.length === 0 && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">No linkable tasks</div>
+                )}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Button size="sm" className="h-7 text-xs" onClick={handleAdd} disabled={!selectedTask || createRelation.isPending}>
+                Add Link
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setShowAdd(false); setSelectedTask(""); }}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {relations.length === 0 && !showAdd && (
+          <p className="text-xs text-muted-foreground py-1">No related tasks yet.</p>
+        )}
+
+        {relations.map((rel) => (
+          <div key={rel.id} className="flex items-center gap-2 group py-1 rounded hover:bg-muted/40 px-1 -mx-1">
+            <span className="text-xs text-muted-foreground w-20 shrink-0 italic">
+              {RELATION_LABELS[rel.relation_type] ?? rel.relation_type}
+            </span>
+            <Link href={`/tasks/${rel.related_task_id}`} className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-mono text-xs text-muted-foreground shrink-0">{rel.related_task.task_number}</span>
+                <span className="text-sm truncate hover:underline">{rel.related_task.task_title}</span>
+              </div>
+              <StatusBadge status={rel.related_task.status} statuses={[]} />
+            </Link>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+              onClick={() => handleRemove(rel.id)}
+            >
+              <Unlink className="h-3 w-3 text-muted-foreground" />
+            </Button>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function TaskDetail() {
   const params = useParams();
   const id = parseInt(params.id || "0", 10);
@@ -130,6 +432,7 @@ export default function TaskDetail() {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const logTime = useLogTime();
+  const cloneTask = useCloneTask();
 
   const [editTitle, setEditTitle] = useState("");
   const [editDesc, setEditDesc] = useState("");
@@ -221,11 +524,19 @@ export default function TaskDetail() {
     });
   };
 
+  const handleClone = () => {
+    cloneTask.mutate({ id }, {
+      onSuccess: (cloned) => {
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+        toast({ title: `Task cloned as ${cloned.task_number}` });
+        setLocation(`/tasks/${cloned.id}`);
+      },
+      onError: () => toast({ variant: "destructive", title: "Failed to clone task" })
+    });
+  };
+
   const onLogTime = (values: z.infer<typeof logTimeSchema>) => {
-    logTime.mutate({
-      id,
-      data: values
-    }, {
+    logTime.mutate({ id, data: values }, {
       onSuccess: (updatedTask) => {
         timeForm.reset();
         queryClient.setQueryData(getGetTaskQueryKey(id), updatedTask);
@@ -238,7 +549,6 @@ export default function TaskDetail() {
   };
 
   const statusOptions = (statuses ?? []) as TaskStatusConfig[];
-
   const reminderFired = task.reminder_at ? isPast(new Date(task.reminder_at)) : false;
 
   return (
@@ -259,6 +569,7 @@ export default function TaskDetail() {
         </div>
       )}
 
+      {/* Header row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-4">
           <Link href="/">
@@ -277,6 +588,15 @@ export default function TaskDetail() {
               Edit
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClone}
+            disabled={cloneTask.isPending}
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            {cloneTask.isPending ? "Cloning..." : "Clone"}
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-transparent">
@@ -303,7 +623,9 @@ export default function TaskDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* ── Left column ── */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Title / description / edit form */}
           <Card>
             <CardHeader>
               {isEditing ? (
@@ -314,9 +636,7 @@ export default function TaskDetail() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Priority</label>
                       <Select value={editPriority} onValueChange={(value) => setEditPriority(value as typeof editPriority)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="highest">Highest</SelectItem>
                           <SelectItem value="high">High</SelectItem>
@@ -329,9 +649,7 @@ export default function TaskDetail() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Status</label>
                       <Select value={editStatus} onValueChange={setEditStatus}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                         <SelectContent>
                           {statusOptions.map((s) => (
                             <SelectItem key={s.id} value={s.name}>{s.label}</SelectItem>
@@ -340,15 +658,11 @@ export default function TaskDetail() {
                       </Select>
                     </div>
 
-                    {/* Due Date edit */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Due Date</label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn("w-full pl-3 text-left font-normal", !editDueDate && "text-muted-foreground")}
-                          >
+                          <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !editDueDate && "text-muted-foreground")}>
                             {editDueDate ? format(editDueDate, "PPP") : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -364,15 +678,11 @@ export default function TaskDetail() {
                       </Popover>
                     </div>
 
-                    {/* Reminder edit */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Reminder</label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn("w-full pl-3 text-left font-normal", !editReminderAt && "text-muted-foreground")}
-                          >
+                          <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !editReminderAt && "text-muted-foreground")}>
                             {editReminderAt ? format(editReminderAt, "PPP") : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -412,6 +722,12 @@ export default function TaskDetail() {
             </CardHeader>
           </Card>
 
+          {/* Checklist */}
+          <SubtasksPanel taskId={id} />
+
+          {/* Related Tasks */}
+          <RelatedTasksPanel taskId={id} />
+
           {/* Time logging */}
           <Card>
             <CardHeader>
@@ -447,6 +763,7 @@ export default function TaskDetail() {
           </Card>
         </div>
 
+        {/* ── Right column ── */}
         <div className="space-y-6">
           <Card>
             <CardHeader>

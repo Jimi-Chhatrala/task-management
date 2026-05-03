@@ -56,6 +56,59 @@ export interface CreateTaskAttachmentBody {
   object_path: string;
 }
 
+export interface Subtask {
+  id: number;
+  task_id: number;
+  title: string;
+  completed: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSubtaskBody {
+  title: string;
+}
+
+export interface UpdateSubtaskBody {
+  title?: string;
+  completed?: boolean;
+}
+
+export type TaskRelationRelationType =
+  (typeof TaskRelationRelationType)[keyof typeof TaskRelationRelationType];
+
+export const TaskRelationRelationType = {
+  related: "related",
+  blocks: "blocks",
+  blocked_by: "blocked_by",
+  duplicates: "duplicates",
+} as const;
+
+export interface TaskRelation {
+  id: number;
+  task_id: number;
+  related_task_id: number;
+  relation_type: TaskRelationRelationType;
+  related_task: Task;
+  created_at: string;
+}
+
+export type CreateTaskRelationBodyRelationType =
+  (typeof CreateTaskRelationBodyRelationType)[keyof typeof CreateTaskRelationBodyRelationType];
+
+export const CreateTaskRelationBodyRelationType = {
+  related: "related",
+  blocks: "blocks",
+  blocked_by: "blocked_by",
+  duplicates: "duplicates",
+} as const;
+
+export interface CreateTaskRelationBody {
+  related_task_id: number;
+  relation_type?: CreateTaskRelationBodyRelationType;
+}
+
 export interface TaskStatusConfig {
   id: number;
   name: string;

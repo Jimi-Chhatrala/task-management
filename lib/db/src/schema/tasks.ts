@@ -50,6 +50,28 @@ export const taskAttachmentsTable = pgTable("task_attachments", {
 
 export type TaskAttachment = typeof taskAttachmentsTable.$inferSelect;
 
+export const taskSubtasksTable = pgTable("task_subtasks", {
+  id: serial("id").primaryKey(),
+  task_id: integer("task_id").notNull(),
+  title: text("title").notNull(),
+  completed: boolean("completed").notNull().default(false),
+  position: integer("position").notNull().default(0),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type TaskSubtask = typeof taskSubtasksTable.$inferSelect;
+
+export const taskRelationsTable = pgTable("task_relations", {
+  id: serial("id").primaryKey(),
+  task_id: integer("task_id").notNull(),
+  related_task_id: integer("related_task_id").notNull(),
+  relation_type: text("relation_type").notNull().default("related"),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type TaskRelation = typeof taskRelationsTable.$inferSelect;
+
 export const insertTaskSchema = createInsertSchema(tasksTable).omit({
   id: true,
   created_at: true,
