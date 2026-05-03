@@ -3,20 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Task Management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: tasks
+    description: Task operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +25,190 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List all tasks
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search in title, description, task_number
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [lowest, low, medium, high, highest]
+          description: Filter by priority
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [created_at, updated_at, priority, production_live_date, time_spent_minutes, task_number]
+          description: Sort field
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: Sort order
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a new task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskBody"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/stats:
+    get:
+      operationId: getTaskStats
+      tags: [tasks]
+      summary: Get task statistics
+      responses:
+        "200":
+          description: Task stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStats"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get a task by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskBody"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Soft delete a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{id}/log-time:
+    post:
+      operationId: logTime
+      tags: [tasks]
+      summary: Log time for a task (Jira-style input)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogTimeBody"
+      responses:
+        "200":
+          description: Updated task with time
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Invalid time format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +219,133 @@ components:
       required:
         - status
 
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_number:
+          type: string
+        task_title:
+          type: string
+        task_description:
+          type: string
+          nullable: true
+        priority:
+          type: string
+          enum: [lowest, low, medium, high, highest]
+        production_live_date:
+          type: string
+          nullable: true
+        time_spent_minutes:
+          type: integer
+        time_spent_formatted:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+      required:
+        - id
+        - task_number
+        - task_title
+        - priority
+        - time_spent_minutes
+        - time_spent_formatted
+        - created_at
+        - updated_at
+
+    CreateTaskBody:
+      type: object
+      properties:
+        task_number:
+          type: string
+        task_title:
+          type: string
+        task_description:
+          type: string
+          nullable: true
+        priority:
+          type: string
+          enum: [lowest, low, medium, high, highest]
+        production_live_date:
+          type: string
+          nullable: true
+        time_input:
+          type: string
+          description: "Jira-style time input e.g. '1d 2h 30m'"
+          nullable: true
+      required:
+        - task_number
+        - task_title
+        - priority
+
+    UpdateTaskBody:
+      type: object
+      properties:
+        task_number:
+          type: string
+        task_title:
+          type: string
+        task_description:
+          type: string
+          nullable: true
+        priority:
+          type: string
+          enum: [lowest, low, medium, high, highest]
+        production_live_date:
+          type: string
+          nullable: true
+        time_input:
+          type: string
+          description: "Jira-style time input e.g. '1d 2h 30m'. Replaces current value."
+          nullable: true
+
+    LogTimeBody:
+      type: object
+      properties:
+        time_input:
+          type: string
+          description: "Jira-style time input e.g. '1d 2h 30m'. Added on top of existing time."
+      required:
+        - time_input
+
+    TaskStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        by_priority:
+          type: object
+          additionalProperties:
+            type: integer
+        total_time_minutes:
+          type: integer
+        total_time_formatted:
+          type: string
+        recent_tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+      required:
+        - total
+        - by_priority
+        - total_time_minutes
+        - total_time_formatted
+        - recent_tasks
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
