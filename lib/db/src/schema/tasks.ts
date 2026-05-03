@@ -72,6 +72,17 @@ export const taskRelationsTable = pgTable("task_relations", {
 
 export type TaskRelation = typeof taskRelationsTable.$inferSelect;
 
+export const taskNotificationsTable = pgTable("task_notifications", {
+  id: serial("id").primaryKey(),
+  task_id: integer("task_id").notNull(),
+  type: text("type").notNull(), // "task_created" | "status_changed"
+  message: text("message").notNull(),
+  read: boolean("read").notNull().default(false),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type TaskNotification = typeof taskNotificationsTable.$inferSelect;
+
 export const insertTaskSchema = createInsertSchema(tasksTable).omit({
   id: true,
   created_at: true,

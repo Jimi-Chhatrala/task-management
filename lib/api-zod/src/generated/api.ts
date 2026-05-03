@@ -460,6 +460,58 @@ export const DeleteTaskRelationResponse = zod.object({
 });
 
 /**
+ * @summary List all notifications (unread first)
+ */
+export const ListNotificationsQueryParams = zod.object({
+  unread_only: zod
+    .enum(["true", "false"])
+    .optional()
+    .describe("Filter to unread only"),
+});
+
+export const ListNotificationsResponseItem = zod.object({
+  id: zod.number(),
+  task_id: zod.number(),
+  type: zod.enum(["task_created", "status_changed"]),
+  message: zod.string(),
+  read: zod.boolean(),
+  created_at: zod.string(),
+});
+export const ListNotificationsResponse = zod.array(
+  ListNotificationsResponseItem,
+);
+
+/**
+ * @summary Get count of unread notifications
+ */
+export const GetUnreadNotificationCountResponse = zod.object({
+  count: zod.number(),
+});
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkAllNotificationsReadResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const MarkNotificationReadResponse = zod.object({
+  id: zod.number(),
+  task_id: zod.number(),
+  type: zod.enum(["task_created", "status_changed"]),
+  message: zod.string(),
+  read: zod.boolean(),
+  created_at: zod.string(),
+});
+
+/**
  * @summary List all task statuses
  */
 export const ListStatusesResponseItem = zod.object({

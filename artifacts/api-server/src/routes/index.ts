@@ -6,6 +6,7 @@ import statusesRouter, { seedDefaultStatuses } from "./statuses";
 import attachmentsRouter from "./attachments";
 import subtasksRouter from "./subtasks";
 import relationsRouter from "./relations";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -21,5 +22,6 @@ router.use(statusesRouter);
 router.use(attachmentsRouter);
 router.use("/tasks/:id/subtasks", subtasksRouter);
 router.use("/tasks/:id/relations", relationsRouter);
+router.use(notificationsRouter);
 
 export default router;

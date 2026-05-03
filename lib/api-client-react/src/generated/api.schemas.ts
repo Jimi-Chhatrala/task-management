@@ -5,6 +5,27 @@
  * Task Management API
  * OpenAPI spec version: 0.1.0
  */
+export type TaskNotificationType =
+  (typeof TaskNotificationType)[keyof typeof TaskNotificationType];
+
+export const TaskNotificationType = {
+  task_created: "task_created",
+  status_changed: "status_changed",
+} as const;
+
+export interface TaskNotification {
+  id: number;
+  task_id: number;
+  type: TaskNotificationType;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -292,4 +313,19 @@ export type ListTasksSortOrder =
 export const ListTasksSortOrder = {
   asc: "asc",
   desc: "desc",
+} as const;
+
+export type ListNotificationsParams = {
+  /**
+   * Filter to unread only
+   */
+  unread_only?: ListNotificationsUnreadOnly;
+};
+
+export type ListNotificationsUnreadOnly =
+  (typeof ListNotificationsUnreadOnly)[keyof typeof ListNotificationsUnreadOnly];
+
+export const ListNotificationsUnreadOnly = {
+  true: "true",
+  false: "false",
 } as const;

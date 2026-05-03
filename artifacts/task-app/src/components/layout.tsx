@@ -13,6 +13,7 @@ import {
 import { ReactNode, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/notification-bell";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -99,6 +100,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Sheet>
             <span className="font-semibold">Task Tracker</span>
           </div>
+          <div className="flex items-center gap-1">
+          <NotificationBell />
           <Button
             variant="ghost"
             className="h-8 px-3 text-xs sm:text-sm"
@@ -124,6 +127,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             )}
             <ChevronDown className="ml-2 h-3.5 w-3.5 opacity-70" />
           </Button>
+          </div>
         </header>
         <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-8">
           <div className="mx-auto max-w-6xl">{children}</div>

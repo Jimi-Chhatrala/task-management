@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, tasksTable } from "@workspace/db";
+import { db, tasksTable, taskNotificationsTable } from "@workspace/db";
 import { eq, isNull, ilike, or, desc, asc, max, lt, and, isNotNull } from "drizzle-orm";
 import {
   ListTasksQueryParams,
@@ -205,6 +205,13 @@ router.post("/tasks", async (req, res) => {
     })
     .returning();
 
+  // Emit notification for task creation
+  await db.insert(taskNotificationsTable).values({
+    task_id: task.id,
+    type: "task_created",
+    message: `Task ${task.task_number} was created: "${task.task_title}"`,
+  });
+
   res.status(201).json(formatTask(task));
 });
 
@@ -267,6 +274,15 @@ router.patch("/tasks/:id", async (req, res) => {
     .set(updates)
     .where(eq(tasksTable.id, id))
     .returning();
+
+  // Emit notification for status change
+  if (nextStatus !== existing.status) {
+    await db.insert(taskNotificationsTable).values({
+      task_id: updated.id,
+      type: "status_changed",
+      message: `${updated.task_number} status changed from "${existing.status}" to "${nextStatus}"`,
+    });
+  }
 
   res.json(formatTask(updated));
 });
