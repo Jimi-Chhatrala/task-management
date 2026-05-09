@@ -21,6 +21,9 @@ const clerkPubKey = publishableKeyFromHost(
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
 );
 
+// Always proxy Clerk through our /api/__clerk endpoint.
+// In dev this forwards to the instance-specific dev FAPI; in prod to frontend-api.clerk.dev.
+// VITE_CLERK_PROXY_URL is auto-set in prod by Replit — fall back to same-origin proxy in dev.
 const clerkProxyUrl =
   import.meta.env.VITE_CLERK_PROXY_URL ||
   `${window.location.origin}/api/__clerk`;
