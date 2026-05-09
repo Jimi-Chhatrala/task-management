@@ -39,7 +39,7 @@ function formatMinutes(minutes: number): string {
 
 // GET /api/tasks/:id/relations
 router.get("/", async (req, res) => {
-  const taskId = Number(req.params.id);
+  const taskId = Number((req.params as any).id);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
 
   const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, taskId));
@@ -72,7 +72,7 @@ router.get("/", async (req, res) => {
 
 // POST /api/tasks/:id/relations
 router.post("/", async (req, res) => {
-  const taskId = Number(req.params.id);
+  const taskId = Number((req.params as any).id);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
 
   const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, taskId));
@@ -126,8 +126,8 @@ router.post("/", async (req, res) => {
 
 // DELETE /api/tasks/:id/relations/:relationId
 router.delete("/:relationId", async (req, res) => {
-  const taskId = Number(req.params.id);
-  const relationId = Number(req.params.relationId);
+  const taskId = Number((req.params as any).id);
+  const relationId = Number((req.params as any).relationId);
   if (isNaN(taskId) || isNaN(relationId)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
   const [existing] = await db

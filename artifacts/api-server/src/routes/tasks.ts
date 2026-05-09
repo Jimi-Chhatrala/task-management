@@ -9,6 +9,7 @@ import {
   LogTimeBody,
 } from "@workspace/api-zod";
 import { parseTimeToMinutes, formatMinutesToReadable } from "../lib/time";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
 
@@ -32,7 +33,8 @@ function formatTask(task: typeof tasksTable.$inferSelect) {
 }
 
 // GET /api/tasks
-router.get("/tasks", async (req, res) => {
+router.get("/tasks", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
   const parsed = ListTasksQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -44,7 +46,7 @@ router.get("/tasks", async (req, res) => {
   let query = db
     .select()
     .from(tasksTable)
-    .where(isNull(tasksTable.deleted_at))
+    .where(and(isNull(tasksTable.deleted_at), eq(tasksTable.user_id, userId)))
     .$dynamic();
 
   if (priority) {
@@ -105,11 +107,12 @@ router.get("/tasks", async (req, res) => {
 });
 
 // GET /api/tasks/stats
-router.get("/tasks/stats", async (req, res) => {
+router.get("/tasks/stats", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
   const all = await db
     .select()
     .from(tasksTable)
-    .where(isNull(tasksTable.deleted_at));
+    .where(and(isNull(tasksTable.deleted_at), eq(tasksTable.user_id, userId)));
 
   const by_priority: Record<string, number> = {
     lowest: 0,
@@ -132,7 +135,7 @@ router.get("/tasks/stats", async (req, res) => {
   const recent_tasks = await db
     .select()
     .from(tasksTable)
-    .where(isNull(tasksTable.deleted_at))
+    .where(and(isNull(tasksTable.deleted_at), eq(tasksTable.user_id, userId)))
     .orderBy(desc(tasksTable.updated_at))
     .limit(5);
 
@@ -148,7 +151,8 @@ router.get("/tasks/stats", async (req, res) => {
 });
 
 // GET /api/tasks/:id
-router.get("/tasks/:id", async (req, res) => {
+router.get("/tasks/:id", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
   const parsed = GetTaskParams.safeParse({ id: Number(req.params.id) });
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid task ID" });
@@ -158,7 +162,7 @@ router.get("/tasks/:id", async (req, res) => {
   const [task] = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.id, parsed.data.id));
+    .where(and(eq(tasksTable.id, parsed.data.id), eq(tasksTable.user_id, userId)));
 
   if (!task || task.deleted_at) {
     res.status(404).json({ error: "Task not found" });
@@ -169,7 +173,8 @@ router.get("/tasks/:id", async (req, res) => {
 });
 
 // POST /api/tasks
-router.post("/tasks", async (req, res) => {
+router.post("/tasks", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
   const parsed = CreateTaskBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -190,7 +195,8 @@ router.post("/tasks", async (req, res) => {
 
   const [result] = await db
     .select({ maxId: max(tasksTable.id) })
-    .from(tasksTable);
+    .from(tasksTable)
+    .where(eq(tasksTable.user_id, userId));
   const nextNum = (result?.maxId ?? 0) + 1;
   const task_number = `TASK-${String(nextNum).padStart(3, "0")}`;
 
@@ -198,6 +204,7 @@ router.post("/tasks", async (req, res) => {
     .insert(tasksTable)
     .values({
       ...rest,
+      user_id: userId,
       task_number,
       time_spent_minutes,
       due_date: due_date ? new Date(due_date) : null,
@@ -205,8 +212,8 @@ router.post("/tasks", async (req, res) => {
     })
     .returning();
 
-  // Emit notification for task creation
   await db.insert(taskNotificationsTable).values({
+    user_id: userId,
     task_id: task.id,
     type: "task_created",
     message: `Task ${task.task_number} was created: "${task.task_title}"`,
@@ -216,7 +223,8 @@ router.post("/tasks", async (req, res) => {
 });
 
 // PATCH /api/tasks/:id
-router.patch("/tasks/:id", async (req, res) => {
+router.patch("/tasks/:id", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
   const id = Number(req.params.id);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid task ID" });
@@ -232,7 +240,7 @@ router.patch("/tasks/:id", async (req, res) => {
   const [existing] = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.id, id));
+    .where(and(eq(tasksTable.id, id), eq(tasksTable.user_id, userId)));
 
   if (!existing || existing.deleted_at) {
     res.status(404).json({ error: "Task not found" });
@@ -272,12 +280,12 @@ router.patch("/tasks/:id", async (req, res) => {
   const [updated] = await db
     .update(tasksTable)
     .set(updates)
-    .where(eq(tasksTable.id, id))
+    .where(and(eq(tasksTable.id, id), eq(tasksTable.user_id, userId)))
     .returning();
 
-  // Emit notification for status change
   if (nextStatus !== existing.status) {
     await db.insert(taskNotificationsTable).values({
+      user_id: userId,
       task_id: updated.id,
       type: "status_changed",
       message: `${updated.task_number} status changed from "${existing.status}" to "${nextStatus}"`,
@@ -288,7 +296,8 @@ router.patch("/tasks/:id", async (req, res) => {
 });
 
 // DELETE /api/tasks/:id (soft delete)
-router.delete("/tasks/:id", async (req, res) => {
+router.delete("/tasks/:id", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
   const id = Number(req.params.id);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid task ID" });
@@ -298,7 +307,7 @@ router.delete("/tasks/:id", async (req, res) => {
   const [existing] = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.id, id));
+    .where(and(eq(tasksTable.id, id), eq(tasksTable.user_id, userId)));
 
   if (!existing || existing.deleted_at) {
     res.status(404).json({ error: "Task not found" });
@@ -308,13 +317,14 @@ router.delete("/tasks/:id", async (req, res) => {
   await db
     .update(tasksTable)
     .set({ deleted_at: new Date() })
-    .where(eq(tasksTable.id, id));
+    .where(and(eq(tasksTable.id, id), eq(tasksTable.user_id, userId)));
 
   res.json({ message: "Task deleted" });
 });
 
 // POST /api/tasks/:id/log-time
-router.post("/tasks/:id/log-time", async (req, res) => {
+router.post("/tasks/:id/log-time", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
   const id = Number(req.params.id);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid task ID" });
@@ -330,7 +340,7 @@ router.post("/tasks/:id/log-time", async (req, res) => {
   const [existing] = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.id, id));
+    .where(and(eq(tasksTable.id, id), eq(tasksTable.user_id, userId)));
 
   if (!existing || existing.deleted_at) {
     res.status(404).json({ error: "Task not found" });
@@ -351,14 +361,15 @@ router.post("/tasks/:id/log-time", async (req, res) => {
       time_spent_minutes: existing.time_spent_minutes + additionalMinutes,
       updated_at: new Date(),
     })
-    .where(eq(tasksTable.id, id))
+    .where(and(eq(tasksTable.id, id), eq(tasksTable.user_id, userId)))
     .returning();
 
   res.json(formatTask(updated));
 });
 
 // POST /api/tasks/:id/clone
-router.post("/tasks/:id/clone", async (req, res) => {
+router.post("/tasks/:id/clone", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
   const id = Number(req.params.id);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid task ID" });
@@ -368,7 +379,7 @@ router.post("/tasks/:id/clone", async (req, res) => {
   const [existing] = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.id, id));
+    .where(and(eq(tasksTable.id, id), eq(tasksTable.user_id, userId)));
 
   if (!existing || existing.deleted_at) {
     res.status(404).json({ error: "Task not found" });
@@ -377,13 +388,15 @@ router.post("/tasks/:id/clone", async (req, res) => {
 
   const [result] = await db
     .select({ maxId: max(tasksTable.id) })
-    .from(tasksTable);
+    .from(tasksTable)
+    .where(eq(tasksTable.user_id, userId));
   const nextNum = (result?.maxId ?? 0) + 1;
   const task_number = `TASK-${String(nextNum).padStart(3, "0")}`;
 
   const [cloned] = await db
     .insert(tasksTable)
     .values({
+      user_id: userId,
       task_number,
       task_title: `${existing.task_title} (Copy)`,
       task_description: existing.task_description,

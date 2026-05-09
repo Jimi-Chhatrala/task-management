@@ -24,6 +24,7 @@ export type TaskStatus = typeof taskStatusesTable.$inferSelect;
 
 export const tasksTable = pgTable("tasks", {
   id: serial("id").primaryKey(),
+  user_id: text("user_id").notNull().default(""),
   task_number: text("task_number").notNull().unique(),
   task_title: text("task_title").notNull(),
   task_description: text("task_description"),
@@ -74,6 +75,7 @@ export type TaskRelation = typeof taskRelationsTable.$inferSelect;
 
 export const taskNotificationsTable = pgTable("task_notifications", {
   id: serial("id").primaryKey(),
+  user_id: text("user_id").notNull().default(""),
   task_id: integer("task_id").notNull(),
   type: text("type").notNull(), // "task_created" | "status_changed"
   message: text("message").notNull(),

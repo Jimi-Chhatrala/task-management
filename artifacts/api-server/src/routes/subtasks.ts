@@ -21,7 +21,7 @@ function formatSubtask(s: typeof taskSubtasksTable.$inferSelect) {
 
 // GET /api/tasks/:id/subtasks
 router.get("/", async (req, res) => {
-  const taskId = Number(req.params.id);
+  const taskId = Number((req.params as any).id);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
 
   const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, taskId));
@@ -38,7 +38,7 @@ router.get("/", async (req, res) => {
 
 // POST /api/tasks/:id/subtasks
 router.post("/", async (req, res) => {
-  const taskId = Number(req.params.id);
+  const taskId = Number((req.params as any).id);
   if (isNaN(taskId)) { res.status(400).json({ error: "Invalid task ID" }); return; }
 
   const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, taskId));
@@ -64,7 +64,7 @@ router.post("/", async (req, res) => {
 
 // PATCH /api/tasks/:id/subtasks/:subtaskId
 router.patch("/:subtaskId", async (req, res) => {
-  const taskId = Number(req.params.id);
+  const taskId = Number((req.params as any).id);
   const subtaskId = Number(req.params.subtaskId);
   if (isNaN(taskId) || isNaN(subtaskId)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
@@ -95,7 +95,7 @@ router.patch("/:subtaskId", async (req, res) => {
 
 // DELETE /api/tasks/:id/subtasks/:subtaskId
 router.delete("/:subtaskId", async (req, res) => {
-  const taskId = Number(req.params.id);
+  const taskId = Number((req.params as any).id);
   const subtaskId = Number(req.params.subtaskId);
   if (isNaN(taskId) || isNaN(subtaskId)) { res.status(400).json({ error: "Invalid ID" }); return; }
 

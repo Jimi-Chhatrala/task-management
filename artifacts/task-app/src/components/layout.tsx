@@ -9,11 +9,21 @@ import {
   SunMedium,
   Monitor,
   ChevronDown,
+  LogOut,
+  User,
 } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notification-bell";
+import { useClerk, useUser } from "@clerk/react";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -21,6 +31,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark" | "system">(
     (localStorage.getItem("theme") as "light" | "dark" | "system" | null) ?? "system",
   );
+  const { signOut } = useClerk();
+  const { user } = useUser();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -41,6 +53,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { href: "/stats", label: "Dashboard", icon: LayoutDashboard },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
+
+  const userDisplayName = user?.firstName
+    ? user.firstName
+    : user?.emailAddresses?.[0]?.emailAddress?.split("@")[0] ?? "Account";
+
+  const userInitial = userDisplayName[0]?.toUpperCase() ?? "U";
 
   const SidebarContent = () => (
     <>
@@ -101,32 +119,66 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <span className="font-semibold">Task Tracker</span>
           </div>
           <div className="flex items-center gap-1">
-          <NotificationBell />
-          <Button
-            variant="ghost"
-            className="h-8 px-3 text-xs sm:text-sm"
-            onClick={() =>
-              setTheme(theme === "light" ? "dark" : theme === "dark" ? "system" : "light")
-            }
-          >
-            {theme === "light" ? (
-              <>
-                <SunMedium className="mr-2 h-4 w-4" />
-                Light
-              </>
-            ) : theme === "dark" ? (
-              <>
-                <Moon className="mr-2 h-4 w-4" />
-                Dark
-              </>
-            ) : (
-              <>
-                <Monitor className="mr-2 h-4 w-4" />
-                System
-              </>
-            )}
-            <ChevronDown className="ml-2 h-3.5 w-3.5 opacity-70" />
-          </Button>
+            <NotificationBell />
+            <Button
+              variant="ghost"
+              className="h-8 px-3 text-xs sm:text-sm"
+              onClick={() =>
+                setTheme(theme === "light" ? "dark" : theme === "dark" ? "system" : "light")
+              }
+            >
+              {theme === "light" ? (
+                <>
+                  <SunMedium className="mr-2 h-4 w-4" />
+                  Light
+                </>
+              ) : theme === "dark" ? (
+                <>
+                  <Moon className="mr-2 h-4 w-4" />
+                  Dark
+                </>
+              ) : (
+                <>
+                  <Monitor className="mr-2 h-4 w-4" />
+                  System
+                </>
+              )}
+              <ChevronDown className="ml-2 h-3.5 w-3.5 opacity-70" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-2 px-2">
+                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+                    {userInitial}
+                  </div>
+                  <span className="hidden sm:block text-xs max-w-[100px] truncate">
+                    {userDisplayName}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium truncate">{userDisplayName}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user?.emailAddresses?.[0]?.emailAddress ?? ""}
+                  </p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-muted-foreground cursor-pointer" disabled>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive cursor-pointer"
+                  onClick={() => signOut({ redirectUrl: "/" })}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
         <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-8">
