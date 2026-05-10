@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Trash2, Plus, GripVertical, Pencil, Check, X } from "lucide-react";
+import { Trash2, Plus, GripVertical, Pencil, Check, X, Bell, BellOff, BellRing } from "lucide-react";
 import {
   useListStatuses,
   useCreateStatus,
@@ -37,6 +37,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 
 const createStatusSchema = z.object({
   name: z
@@ -55,6 +56,111 @@ const PRESET_COLORS = [
   "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6",
   "#f97316", "#06b6d4",
 ];
+
+function NotificationsCard() {
+  const { toast } = useToast();
+  const { permission, isSubscribed, isLoading, supported, subscribe, unsubscribe } =
+    usePushNotifications();
+
+  async function handleToggle() {
+    try {
+      if (isSubscribed) {
+        await unsubscribe();
+        toast({ title: "Push notifications disabled" });
+      } else {
+        await subscribe();
+        if (permission === "denied") {
+          toast({
+            variant: "destructive",
+            title: "Permission denied",
+            description: "Allow notifications in your browser settings and try again.",
+          });
+        } else {
+          toast({ title: "Push notifications enabled" });
+        }
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update notification settings." });
+    }
+  }
+
+  if (!supported) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-4 w-4" /> Push Notifications
+          </CardTitle>
+          <CardDescription>
+            Browser push notifications for due dates and reminders.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Push notifications are not supported in this browser, or VAPID keys are not
+            configured on the server.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <BellRing className="h-4 w-4" /> Push Notifications
+        </CardTitle>
+        <CardDescription>
+          Receive browser push notifications for task reminders and due dates.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between gap-4 p-3 rounded-lg border border-border bg-card">
+          <div className="flex items-center gap-3">
+            {isSubscribed ? (
+              <Bell className="h-5 w-5 text-primary" />
+            ) : (
+              <BellOff className="h-5 w-5 text-muted-foreground" />
+            )}
+            <div>
+              <p className="text-sm font-medium">
+                {isSubscribed ? "Notifications active" : "Notifications off"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {permission === "denied"
+                  ? "Blocked by browser — allow in browser settings"
+                  : isSubscribed
+                  ? "You'll be notified for reminders and due dates"
+                  : "Enable to get notified for reminders and due dates"}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={isSubscribed}
+            onCheckedChange={handleToggle}
+            disabled={isLoading || permission === "denied"}
+          />
+        </div>
+
+        {permission === "denied" && (
+          <p className="text-xs text-destructive">
+            Notifications are blocked. Open your browser's site settings and allow
+            notifications, then refresh the page.
+          </p>
+        )}
+
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p className="font-medium text-foreground">When you'll be notified:</p>
+          <ul className="list-disc list-inside space-y-0.5">
+            <li>When a reminder fires on a task</li>
+            <li>At 9 AM on the day a task is due</li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Settings() {
   const { toast } = useToast();
@@ -160,9 +266,11 @@ export default function Settings() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Manage your workflow statuses.
+          Manage your workflow statuses and notification preferences.
         </p>
       </div>
+
+      <NotificationsCard />
 
       <Card>
         <CardHeader>

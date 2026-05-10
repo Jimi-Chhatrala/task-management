@@ -7,6 +7,7 @@ import attachmentsRouter from "./attachments";
 import subtasksRouter from "./subtasks";
 import relationsRouter from "./relations";
 import notificationsRouter from "./notifications";
+import pushRouter from "./push";
 
 const router: IRouter = Router();
 
@@ -23,5 +24,6 @@ router.use(attachmentsRouter);
 router.use("/tasks/:id/subtasks", subtasksRouter);
 router.use("/tasks/:id/relations", relationsRouter);
 router.use(notificationsRouter);
+router.use(pushRouter);
 
 export default router;

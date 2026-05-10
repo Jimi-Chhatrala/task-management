@@ -39,6 +39,11 @@ if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
 }
 
+// Register push notification service worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+
 const clerkAppearance = {
   theme: shadcn,
   cssLayerName: "clerk",

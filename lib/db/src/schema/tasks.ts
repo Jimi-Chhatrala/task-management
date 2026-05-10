@@ -87,6 +87,19 @@ export const taskNotificationsTable = pgTable("task_notifications", {
 
 export type TaskNotification = typeof taskNotificationsTable.$inferSelect;
 
+export const pushSubscriptionsTable = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  user_id: text("user_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("push_subscriptions_endpoint_unique").on(table.endpoint),
+]);
+
+export type PushSubscription = typeof pushSubscriptionsTable.$inferSelect;
+
 export const insertTaskSchema = createInsertSchema(tasksTable).omit({
   id: true,
   created_at: true,
