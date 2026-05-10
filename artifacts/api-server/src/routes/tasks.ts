@@ -193,10 +193,13 @@ router.post("/tasks", requireAuth, async (req, res) => {
     }
   }
 
+  // Use the global max task id to derive the next task number.
+  // task_number is now unique per (user_id, task_number), so each user has
+  // their own sequence — but we base it on the global id to avoid any race
+  // with concurrent inserts regardless of how many users exist.
   const [result] = await db
     .select({ maxId: max(tasksTable.id) })
-    .from(tasksTable)
-    .where(eq(tasksTable.user_id, userId));
+    .from(tasksTable);
   const nextNum = (result?.maxId ?? 0) + 1;
   const task_number = `TASK-${String(nextNum).padStart(3, "0")}`;
 

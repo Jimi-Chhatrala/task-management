@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, pgEnum, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -25,7 +25,7 @@ export type TaskStatus = typeof taskStatusesTable.$inferSelect;
 export const tasksTable = pgTable("tasks", {
   id: serial("id").primaryKey(),
   user_id: text("user_id").notNull().default(""),
-  task_number: text("task_number").notNull().unique(),
+  task_number: text("task_number").notNull(),
   task_title: text("task_title").notNull(),
   task_description: text("task_description"),
   priority: priorityEnum("priority").notNull().default("medium"),
@@ -37,7 +37,9 @@ export const tasksTable = pgTable("tasks", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow(),
   deleted_at: timestamp("deleted_at"),
-});
+}, (table) => [
+  uniqueIndex("tasks_user_task_number_unique").on(table.user_id, table.task_number),
+]);
 
 export const taskAttachmentsTable = pgTable("task_attachments", {
   id: serial("id").primaryKey(),
