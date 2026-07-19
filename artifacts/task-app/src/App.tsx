@@ -53,20 +53,15 @@ const clerkAppearance = {
     logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
   },
   variables: {
-    colorPrimary: "hsl(220, 80%, 40%)",
-    colorForeground: "hsl(240, 10%, 10%)",
-    colorMutedForeground: "hsl(240, 5%, 40%)",
-    colorDanger: "hsl(0, 84%, 60%)",
-    colorBackground: "hsl(0, 0%, 100%)",
-    colorInput: "hsl(240, 5.9%, 90%)",
-    colorInputForeground: "hsl(240, 10%, 10%)",
-    colorNeutral: "hsl(240, 5.9%, 90%)",
+    // Let @clerk/themes/shadcn.css map colours from the app's own CSS variables
+    // so dark mode is respected automatically. Only override font/radius here.
     fontFamily: "Inter, sans-serif",
     borderRadius: "0.3rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "bg-white rounded-lg w-[440px] max-w-full overflow-hidden shadow-md border border-border",
+    // bg-card picks up --card which switches between light/dark values
+    cardBox: "bg-card rounded-lg w-[440px] max-w-full overflow-hidden shadow-md border border-border",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
     headerTitle: "text-foreground font-semibold",
@@ -81,7 +76,8 @@ const clerkAppearance = {
     alertText: "text-foreground",
     logoBox: "flex justify-center mb-1",
     logoImage: "h-10 w-10",
-    socialButtonsBlockButton: "border border-border bg-white hover:bg-secondary text-foreground",
+    // bg-background instead of bg-white so it flips in dark mode
+    socialButtonsBlockButton: "border border-border bg-background hover:bg-secondary text-foreground",
     formButtonPrimary: "bg-primary hover:bg-primary/90 text-white",
     formFieldInput: "border border-border bg-background text-foreground",
     footerAction: "border-t border-border bg-secondary/30",
