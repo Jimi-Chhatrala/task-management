@@ -301,7 +301,7 @@ export default function NewTask() {
                                 !field.value && "text-muted-foreground"
                               )}
                             >
-                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                              {field.value ? format(field.value, "PPP 'at' h:mm a") : <span>Pick a date & time</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -310,16 +310,36 @@ export default function NewTask() {
                           <Calendar
                             mode="single"
                             selected={field.value || undefined}
-                            onSelect={field.onChange}
+                            onSelect={(d) => {
+                              if (!d) { field.onChange(null); return; }
+                              const prev = field.value;
+                              const merged = new Date(d);
+                              if (prev) { merged.setHours(prev.getHours(), prev.getMinutes()); }
+                              else { merged.setHours(9, 0); }
+                              field.onChange(merged);
+                            }}
                             initialFocus
                           />
-                          {field.value && (
-                            <div className="p-2 border-t">
+                          <div className="p-3 border-t space-y-2">
+                            <label className="text-xs font-medium text-muted-foreground">Time</label>
+                            <input
+                              type="time"
+                              className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              value={field.value ? `${String(field.value.getHours()).padStart(2, "0")}:${String(field.value.getMinutes()).padStart(2, "0")}` : "09:00"}
+                              onChange={(e) => {
+                                const [h, m] = e.target.value.split(":").map(Number);
+                                const base = field.value ? new Date(field.value) : new Date();
+                                base.setHours(h, m, 0, 0);
+                                field.onChange(base);
+                              }}
+                              disabled={!field.value}
+                            />
+                            {field.value && (
                               <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => field.onChange(null)}>
                                 Clear reminder
                               </Button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </PopoverContent>
                       </Popover>
                       <FormDescription className="text-xs">Shows an in-app alert when this date arrives</FormDescription>

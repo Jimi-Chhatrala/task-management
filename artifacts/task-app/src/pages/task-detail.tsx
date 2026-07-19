@@ -114,11 +114,12 @@ function ReminderDisplay({ reminderAt }: { reminderAt: string | null | undefined
   if (!reminderAt) return <span className="text-muted-foreground">—</span>;
   const date = new Date(reminderAt);
   const fired = isPast(date);
+  const displayStr = format(date, "MMM d, yyyy 'at' h:mm a");
   return (
     <div className="flex items-center gap-1.5">
       <Bell className="h-3.5 w-3.5 text-muted-foreground" />
       <span className={cn("font-medium", fired && "text-amber-600 dark:text-amber-400")}>
-        {format(date, "MMM d, yyyy")}
+        {displayStr}
         {fired && " (fired)"}
       </span>
     </div>
@@ -565,7 +566,7 @@ export default function TaskDetail() {
       {reminderFired && !task.is_overdue && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-sm font-medium">
           <Bell className="h-4 w-4 shrink-0" />
-          Reminder: {task.reminder_at ? format(new Date(task.reminder_at), "MMMM d, yyyy") : ""} — don't forget this task!
+          Reminder: {task.reminder_at ? format(new Date(task.reminder_at), "MMMM d, yyyy 'at' h:mm a") : ""} — don't forget this task!
         </div>
       )}
 
@@ -683,17 +684,41 @@ export default function TaskDetail() {
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !editReminderAt && "text-muted-foreground")}>
-                            {editReminderAt ? format(editReminderAt, "PPP") : <span>Pick a date</span>}
+                            {editReminderAt ? format(editReminderAt, "PPP 'at' h:mm a") : <span>Pick a date & time</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={editReminderAt || undefined} onSelect={(d) => setEditReminderAt(d ?? null)} initialFocus />
-                          {editReminderAt && (
-                            <div className="p-2 border-t">
+                          <Calendar
+                            mode="single"
+                            selected={editReminderAt || undefined}
+                            onSelect={(d) => {
+                              if (!d) { setEditReminderAt(null); return; }
+                              const merged = new Date(d);
+                              if (editReminderAt) { merged.setHours(editReminderAt.getHours(), editReminderAt.getMinutes()); }
+                              else { merged.setHours(9, 0); }
+                              setEditReminderAt(merged);
+                            }}
+                            initialFocus
+                          />
+                          <div className="p-3 border-t space-y-2">
+                            <label className="text-xs font-medium text-muted-foreground">Time</label>
+                            <input
+                              type="time"
+                              className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              value={editReminderAt ? `${String(editReminderAt.getHours()).padStart(2, "0")}:${String(editReminderAt.getMinutes()).padStart(2, "0")}` : "09:00"}
+                              onChange={(e) => {
+                                const [h, m] = e.target.value.split(":").map(Number);
+                                const base = editReminderAt ? new Date(editReminderAt) : new Date();
+                                base.setHours(h, m, 0, 0);
+                                setEditReminderAt(base);
+                              }}
+                              disabled={!editReminderAt}
+                            />
+                            {editReminderAt && (
                               <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setEditReminderAt(null)}>Clear reminder</Button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </PopoverContent>
                       </Popover>
                     </div>
